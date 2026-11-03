@@ -5,7 +5,7 @@ Solo build by Aayush Sharma (Thapar University). The name refers to the people i
 
 ## Goal
 
-A bureau score cannot rank someone who has no bureau file. In one real Indian lender's book, half of all
+A bureau score cannot rank someone who has no bureau file. In a public Indian vehicle-loan dataset, half of all
 borrowers are in that position. ZeroFile scores those people from the loan application alone, explains every
 result, shows what would change it, and reports what the policy would do to a lender's book.
 
@@ -23,7 +23,7 @@ Measured on the real data before the design was fixed:
 | What benchmark is fair? | No-bureau default (24.1%) is close to all scored borrowers (23.0%), which is too easy to beat | Benchmark against bureau **low-risk** grades A to G (19.0%) |
 | Do we need age? | Adds about 0.000 AUC on no-bureau applicants | Excluded from the model, kept for the audit |
 | Do we need state? | Adds about 0.002 AUC | Excluded from the model, kept for the audit |
-| Do we need ID-document flags? | Removing all five costs 0.001 AUC, and keeping them penalised applicants who withheld Aadhaar by about 33 points | Excluded. A score should not punish someone for withholding a voluntary document |
+| Do we need ID-document flags? | Removing all five costs about 0.001 AUC, and keeping them took about 33 points off an example applicant who gave a voter ID instead of Aadhaar | Excluded. A score should not punish someone for which identity document they share |
 | Pincode and employee code? | Pincode adds almost nothing. The employee code records who logged the loan, not anything about the applicant | Dropped when the data loads |
 | Reported LTV or computed? | Same AUC (0.631) | Use `loan / vehicle price`, so the form and the data agree |
 | Monotonic LTV? | No AUC cost | Higher LTV can never lower risk, which makes recourse trustworthy |
@@ -70,7 +70,7 @@ model file is small enough to commit, so cold starts stay short and there is no 
 
 1. `python -m zerofile.data` downloads the public [L&T Vehicle Loan Default](https://www.kaggle.com/datasets/mamtadhaker/lt-vehicle-loan-default-prediction) dataset into the ignored `data/` folder.
 2. Load, check the schema, derive LTV and age, and **drop date of birth, pincode, customer ID and employee code**.
-3. Split by disbursal date: train 1 Aug to 23 Sep, validate 24 to 30 Sep, test 1 to 31 Oct.
+3. Split by disbursal date: train 1 Aug to 23 Sep, validate 24 to 30 Sep, test on October.
 4. Encode brand, dealer and branch as smoothed historic default rates. Training rows use out-of-fold values, and later periods only see what training saw.
 
 ## Model

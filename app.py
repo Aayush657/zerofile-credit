@@ -169,7 +169,7 @@ def lender_tab(report: dict) -> None:
     headline = report["headline"]
     st.write(
         f"Every applicant here has no credit file, so a lender using only a bureau score approves none of them. "
-        f"Move the slider to choose how many ZeroFile approves. All figures come from {headline['applicants']:,} real October loans the model never trained on."
+        f"Move the slider to choose how many ZeroFile approves. All figures come from {headline['applicants']:,} October loans the model never trained on."
     )
     curve = pd.DataFrame(report["policy_curve"])
     share = st.slider("Approve the safest share of no-file applicants", 10, 100, 42, step=2, format="%d%%", key="share")
@@ -373,7 +373,7 @@ st.title("ZeroFile")
 st.markdown("**A credit score for people with no credit file.** A bureau score cannot rank someone it has never seen. ZeroFile scores them from the loan application, explains every result, and shows what would change it.")
 first, second, third, fourth = st.columns(4)
 first.metric("Borrowers with no credit file", pct(population["no_bureau_share"]))
-first.caption(f"{population['no_bureau']:,} of {population['rows']:,} loans at a real Indian lender")
+first.caption(f"{population['no_bureau']:,} of {population['rows']:,} loans in a public Indian vehicle-loan dataset")
 second.metric("Approved in the October back-test", f"{headline['people']:,}")
 second.caption(f"{pct(headline['share'])} of no-file applicants. A score-only lender approves none.")
 third.metric("Credit unlocked in one month", f"₹{headline['crore']:.0f} crore")

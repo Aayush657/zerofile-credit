@@ -24,6 +24,10 @@ Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and
 
 Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. Open the link yourself shortly before the deadline, and at least once a day until results are announced on 9 November.
 
+## After pushing a code change
+
+Streamlit redeploys on every push, but it can keep old modules in memory, which shows an `ImportError` on the live page. If you see one, go to [share.streamlit.io](https://share.streamlit.io), open the app's **⋮** menu and choose **Reboot**. Then check the live page again.
+
 ## If the build fails
 
 - **`libgomp` error:** `packages.txt` already installs it. Check that the file is at the top level of the repo.

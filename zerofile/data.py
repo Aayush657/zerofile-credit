@@ -1,4 +1,4 @@
-"""Download, validate and split the L&T vehicle-loan dataset. Run `python -m zerofile.data` to fetch it."""
+"""Download, validate and split the datasets. Run `python -m zerofile.data` to fetch both."""
 import base64
 import io
 import os
@@ -13,6 +13,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 DATASET_PAGE = "https://www.kaggle.com/datasets/mamtadhaker/lt-vehicle-loan-default-prediction"
 DATASET_URL = "https://www.kaggle.com/api/v1/datasets/download/mamtadhaker/lt-vehicle-loan-default-prediction"
+WORKER_DATA_PAGE = "https://www.kaggle.com/datasets/shreyyans/alternate-credit-dataset"
+WORKER_DATA_URL = "https://www.kaggle.com/api/v1/datasets/download/shreyyans/alternate-credit-dataset"
+WORKER_DATA_FILE = "alternate_credit_raw.csv"
 
 NO_BUREAU = "No Bureau History Available"
 VAL_START = pd.Timestamp("2018-09-24")
@@ -46,13 +49,13 @@ def data_dir() -> Path:
     return Path(os.environ.get("ZEROFILE_DATA_DIR") or ROOT / "data")
 
 
-def download() -> Path:
-    """Fetch train.csv once. Later calls return the existing file."""
-    target = data_dir() / "train.csv"
+def download(url: str = DATASET_URL, member: str = "train.csv", page: str = DATASET_PAGE) -> Path:
+    """Fetch one file from a Kaggle dataset once. Later calls return the existing file."""
+    target = data_dir() / member
     if target.exists():
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(DATASET_URL, headers={"User-Agent": "zerofile"})
+    request = urllib.request.Request(url, headers={"User-Agent": "zerofile"})
     user, key = os.environ.get("KAGGLE_USERNAME"), os.environ.get("KAGGLE_KEY")
     if user and key:
         token = base64.b64encode(f"{user}:{key}".encode()).decode()
@@ -63,10 +66,10 @@ def download() -> Path:
     except urllib.error.URLError as exc:
         raise SystemExit(
             f"Could not download the dataset ({exc}).\n"
-            f"Download it from {DATASET_PAGE} and put train.csv in {target.parent}, "
+            f"Download it from {page} and put {member} in {target.parent}, "
             "or add Kaggle credentials to .env."
         ) from exc
-    with zipfile.ZipFile(io.BytesIO(payload)) as archive, archive.open("train.csv") as source:
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive, archive.open(member) as source:
         target.write_bytes(source.read())
     return target
 
@@ -133,3 +136,4 @@ def split(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
 
 if __name__ == "__main__":
     print(f"Dataset ready at {download()}")
+    print(f"Dataset ready at {download(WORKER_DATA_URL, WORKER_DATA_FILE, WORKER_DATA_PAGE)}")

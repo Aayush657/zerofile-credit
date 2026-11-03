@@ -9,8 +9,9 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 from zerofile import evaluate as ev
+from zerofile.altdata import SCENARIOS, SHIPPED_SCENARIO, simulate
 from zerofile.data import BUREAU_FEATURES, load, split
-from zerofile.features import CHANNEL, FEATURES, ID_DOCUMENTS, LOAN, PROFILE, encode_channels, monotone_for
+from zerofile.features import ALT_SIGNALS, CHANNEL, FEATURES, ID_DOCUMENTS, LOAN, PROFILE, encode_channels, monotone_for
 from zerofile.scoring import ARTIFACTS, FACTOR_GROUPS, Applicant, Scorer, points_from_margin
 
 PARAMS = dict(
@@ -37,6 +38,49 @@ def fit(train: pd.DataFrame, val: pd.DataFrame, features: list[str]) -> lgb.Boos
         valid_sets=[lgb.Dataset(val[features], val["default"])],
         callbacks=[lgb.early_stopping(100, verbose=False)],
     )
+
+
+def calibrate(booster: lgb.Booster, features: list[str], val: pd.DataFrame) -> dict:
+    platt = LogisticRegression(C=1e6).fit(booster.predict(val[features], raw_score=True).reshape(-1, 1), val["default"])
+    return {"slope": float(platt.coef_[0, 0]), "intercept": float(platt.intercept_[0])}
+
+
+def calibrated_risk(booster: lgb.Booster, features: list[str], platt: dict, rows: pd.DataFrame) -> np.ndarray:
+    return 1 / (1 + np.exp(-(platt["slope"] * booster.predict(rows[features], raw_score=True) + platt["intercept"])))
+
+
+def fix_cutoffs(booster: lgb.Booster, features: list[str], platt: dict, val: pd.DataFrame) -> dict:
+    """Everything policy-related is fixed on validation, before October is scored."""
+    val_nb = val[val["no_bureau"]]
+    p = calibrated_risk(booster, features, platt, val_nb)
+    target = float(val.loc[val["bureau_low_risk"], "default"].mean())
+    return {"approve": ev.pick_threshold(p, val_nb["default"].to_numpy(), target), "high_risk": float(np.quantile(p, 1 - HIGH_RISK_SHARE))}
+
+
+def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> tuple[list[dict], dict]:
+    """What would utility and mobile data be worth IF it were this strong? A simulation, never a measured result."""
+    features = FEATURES + ALT_SIGNALS
+    rows, shipped = [], {}
+    for name, strength in SCENARIOS.items():
+        tr, va, te = (frame.assign(**simulate(frame["default"].to_numpy(), strength, seed)) for frame, seed in ((train, 1), (val, 2), (test, 3)))
+        booster = fit(tr, va, features)
+        platt = calibrate(booster, features, va)
+        cutoffs = fix_cutoffs(booster, features, platt, va)
+        te_nb = te[te["no_bureau"]]
+        y, p = te_nb["default"].to_numpy(), calibrated_risk(booster, features, platt, te_nb)
+        habit = te_nb[ALT_SIGNALS].mean(axis=1).to_numpy()
+        by_quintile = pd.Series(y).groupby(pd.qcut(habit, 5, labels=False)).mean()
+        rows.append({
+            "scenario": name,
+            "signal_auc": float(np.mean([ev.roc_auc_score(y, -te_nb[signal].to_numpy()) for signal in ALT_SIGNALS])),
+            "signals_only_quintile_ratio": float(by_quintile.iloc[0] / by_quintile.iloc[-1]),
+            "auc_no_bureau": float(ev.roc_auc_score(y, p)),
+            **ev.policy_row(p <= cutoffs["approve"], y, te_nb["loan"].to_numpy()),
+        })
+        if name == SHIPPED_SCENARIO:
+            booster.save_model(str(ARTIFACTS / "alt_model.txt"))
+            shipped = {"scenario": name, "features": features, "platt": platt, "thresholds": cutoffs}
+    return rows, shipped
 
 
 def period(frame: pd.DataFrame) -> dict:
@@ -93,29 +137,27 @@ def main():
     train, val, test = encode_channels(train, val, test)
 
     booster = fit(train, val, FEATURES)
-    platt = LogisticRegression(C=1e6).fit(booster.predict(val[FEATURES], raw_score=True).reshape(-1, 1), val["default"])
-    slope, intercept = float(platt.coef_[0, 0]), float(platt.intercept_[0])
+    platt = calibrate(booster, FEATURES, val)
 
     def predict(rows: pd.DataFrame) -> np.ndarray:
-        return 1 / (1 + np.exp(-(slope * booster.predict(rows[FEATURES], raw_score=True) + intercept)))
+        return calibrated_risk(booster, FEATURES, platt, rows)
 
-    # Everything policy-related is fixed on validation, before October is scored.
-    val_nb = val[val["no_bureau"]]
-    p_val_nb = predict(val_nb)
+    cutoffs = fix_cutoffs(booster, FEATURES, platt, val)
+    approve_at, high_risk_at = cutoffs["approve"], cutoffs["high_risk"]
     benchmark_val = float(val.loc[val["bureau_low_risk"], "default"].mean())
-    approve_at = ev.pick_threshold(p_val_nb, val_nb["default"].to_numpy(), benchmark_val)
-    high_risk_at = float(np.quantile(p_val_nb, 1 - HIGH_RISK_SHARE))
 
     ARTIFACTS.mkdir(exist_ok=True)
     booster.save_model(str(ARTIFACTS / "model.txt"))
+    scenarios, shipped_alt = alt_scenarios(train, val, test)
     tiers = {
         name: {"better": float(train[name].quantile(0.25)), "average": float(train["default"].mean()), "worse": float(train[name].quantile(0.75))}
         for name in CHANNEL
     }
     meta = {
         "features": FEATURES,
-        "platt": {"slope": slope, "intercept": intercept},
-        "thresholds": {"approve": approve_at, "high_risk": high_risk_at},
+        "platt": platt,
+        "thresholds": cutoffs,
+        "alt": shipped_alt,
         "tiers": tiers,
         "price_range": [int(frame["vehicle_price"].min()), int(frame["vehicle_price"].max())],
         "ltv_range": [float(frame["ltv_pct"].min()), float(frame["ltv_pct"].max())],
@@ -189,6 +231,7 @@ def main():
             "Region": ev.group_audit(test_nb["region"].to_numpy(), approved, y_nb),
         },
         "regional_floor": ev.regional_floor(p_nb, y_nb, loan_nb, test_nb["region"].to_numpy(), approved),
+        "alt_scenarios": scenarios,
         "importance": importance(booster, test_nb),
         "model": {"trees": int(booster.best_iteration), "features": len(FEATURES)},
     }
@@ -215,6 +258,7 @@ def main():
     print(pd.DataFrame(report["fairness"]["Employment"]).round(3).to_string())
     print(pd.DataFrame(report["fairness"]["Region"]).round(3).to_string())
     print("Regional floor", report["regional_floor"])
+    print(pd.DataFrame(scenarios).round(4).to_string())
     print("Deciles", [round(v, 3) for v in deciles])
     print("Calibration", {k: round(report[k], 4) for k in ("ks_no_bureau", "brier_no_bureau", "brier_base_rate_no_bureau", "ece_no_bureau")})
     print("Weekly", report["weekly_drift"])

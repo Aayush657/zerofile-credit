@@ -906,6 +906,38 @@
     "default": 0.16764115914813707,
     "crore": 118.9948254
   },
+  "alt_scenarios": [
+    {
+      "scenario": "Weak",
+      "signal_auc": 0.5478086592480248,
+      "signals_only_quintile_ratio": 1.548780487804878,
+      "auc_no_bureau": 0.6421431597282182,
+      "share": 0.481567098174801,
+      "people": 23957,
+      "default": 0.16308385857995575,
+      "crore": 123.7028639
+    },
+    {
+      "scenario": "Moderate",
+      "signal_auc": 0.5968168977339962,
+      "signals_only_quintile_ratio": 2.4947515745276414,
+      "auc_no_bureau": 0.6724166873529694,
+      "share": 0.5916418750502532,
+      "people": 29433,
+      "default": 0.1646111507491591,
+      "crore": 156.6825365
+    },
+    {
+      "scenario": "Strong",
+      "signal_auc": 0.648056277094191,
+      "signals_only_quintile_ratio": 4.16374269005848,
+      "auc_no_bureau": 0.716454149922999,
+      "share": 0.7009528021226984,
+      "people": 34871,
+      "default": 0.16360299389177255,
+      "crore": 189.4970836
+    }
+  ],
   "importance": [
     {
       "factor": "Down payment",
@@ -936,5 +968,5 @@
     "trees": 152,
     "features": 6
   },
-  "latency_ms_p50": 2.028249902650714
+  "latency_ms_p50": 0.859849969856441
 }

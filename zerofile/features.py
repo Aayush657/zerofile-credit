@@ -9,11 +9,12 @@ FEATURES = LOAN + PROFILE + CHANNEL
 # Measured and rejected: they add about 0.001 AUC, and a score should not punish someone for withholding Aadhaar.
 ID_DOCUMENTS = ["aadhaar", "pan", "voter_id", "driving_licence", "passport"]
 ENCODED = {"brand": "brand_risk", "dealer": "dealer_risk", "branch": "branch_risk", "region": "region_risk"}
+ALT_SIGNALS = ["bills_on_time", "topup_regularity", "income_regularity"]  # Simulated. See altdata.py.
 
 
 def monotone_for(features: list[str]) -> list[int]:
-    """A bigger loan against the same vehicle can never lower risk."""
-    return [1 if name == "ltv_pct" else 0 for name in features]
+    """A bigger loan against the same vehicle can never lower risk, and better payment habits can never raise it."""
+    return [1 if name == "ltv_pct" else -1 if name in ALT_SIGNALS else 0 for name in features]
 
 
 def _shrunk_rates(frame: pd.DataFrame, column: str, prior: float, smoothing: int) -> pd.Series:

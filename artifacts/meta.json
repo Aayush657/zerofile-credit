@@ -15,6 +15,28 @@
     "approve": 0.1800149071498786,
     "high_risk": 0.265450826171007
   },
+  "alt": {
+    "scenario": "Moderate",
+    "features": [
+      "ltv_pct",
+      "log_vehicle_price",
+      "self_employed",
+      "brand_risk",
+      "dealer_risk",
+      "branch_risk",
+      "bills_on_time",
+      "topup_regularity",
+      "income_regularity"
+    ],
+    "platt": {
+      "slope": 0.9411840894481213,
+      "intercept": -0.08941316987244202
+    },
+    "thresholds": {
+      "approve": 0.20586532517148348,
+      "high_risk": 0.2790914755246663
+    }
+  },
   "tiers": {
     "brand_risk": {
       "better": 0.19451460158619382,

@@ -6,10 +6,13 @@ from pathlib import Path
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from zerofile import evaluate as ev
-from zerofile.altdata import SCENARIOS, SHIPPED_SCENARIO, simulate
+from zerofile.altdata import SCENARIOS, simulate
 from zerofile.data import BUREAU_FEATURES, load, split
 from zerofile.features import ALT_SIGNALS, CHANNEL, FEATURES, ID_DOCUMENTS, LOAN, PROFILE, encode_channels, monotone_for
 from zerofile.scoring import ARTIFACTS, FACTOR_GROUPS, Applicant, Scorer, points_from_margin
@@ -57,10 +60,10 @@ def fix_cutoffs(booster: lgb.Booster, features: list[str], platt: dict, val: pd.
     return {"approve": ev.pick_threshold(p, val_nb["default"].to_numpy(), target), "high_risk": float(np.quantile(p, 1 - HIGH_RISK_SHARE))}
 
 
-def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> tuple[list[dict], dict]:
+def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> list[dict]:
     """What would utility and mobile data be worth IF it were this strong? A simulation, never a measured result."""
     features = FEATURES + ALT_SIGNALS
-    rows, shipped = [], {}
+    rows = []
     for name, strength in SCENARIOS.items():
         tr, va, te = (frame.assign(**simulate(frame["default"].to_numpy(), strength, seed)) for frame, seed in ((train, 1), (val, 2), (test, 3)))
         booster = fit(tr, va, features)
@@ -77,10 +80,7 @@ def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) ->
             "auc_no_bureau": float(ev.roc_auc_score(y, p)),
             **ev.policy_row(p <= cutoffs["approve"], y, te_nb["loan"].to_numpy()),
         })
-        if name == SHIPPED_SCENARIO:
-            booster.save_model(str(ARTIFACTS / "alt_model.txt"))
-            shipped = {"scenario": name, "features": features, "platt": platt, "thresholds": cutoffs}
-    return rows, shipped
+    return rows
 
 
 def period(frame: pd.DataFrame) -> dict:
@@ -100,6 +100,14 @@ def worst_region_ratio(booster, features, val, test) -> float:
     cutoff = ev.pick_threshold(booster.predict(val_nb[features]), val_nb["default"].to_numpy(), target)
     audit = ev.group_audit(test_nb["region"].to_numpy(), booster.predict(test_nb[features]) <= cutoff, test_nb["default"].to_numpy())
     return min(row["ratio"] for row in audit)
+
+
+def logistic_baseline(train, test) -> dict:
+    """The same inputs in a plain linear model, to show what the gradient boosting adds."""
+    model = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(max_iter=1000)).fit(train[FEATURES], train["default"])
+    p, y = model.predict_proba(test[FEATURES])[:, 1], test["default"].to_numpy()
+    no_bureau, rated = test["no_bureau"].to_numpy(), test["bureau_rated"].to_numpy()
+    return {"auc_no_bureau": float(ev.roc_auc_score(y[no_bureau], p[no_bureau])), "auc_rated": float(ev.roc_auc_score(y[rated], p[rated]))}
 
 
 def variant_table(train, val, test) -> list[dict]:
@@ -148,7 +156,7 @@ def main():
 
     ARTIFACTS.mkdir(exist_ok=True)
     booster.save_model(str(ARTIFACTS / "model.txt"))
-    scenarios, shipped_alt = alt_scenarios(train, val, test)
+    scenarios = alt_scenarios(train, val, test)
     tiers = {
         name: {"better": float(train[name].quantile(0.25)), "average": float(train["default"].mean()), "worse": float(train[name].quantile(0.75))}
         for name in CHANNEL
@@ -157,7 +165,6 @@ def main():
         "features": FEATURES,
         "platt": platt,
         "thresholds": cutoffs,
-        "alt": shipped_alt,
         "tiers": tiers,
         "price_range": [int(frame["vehicle_price"].min()), int(frame["vehicle_price"].max())],
         "ltv_range": [float(frame["ltv_pct"].min()), float(frame["ltv_pct"].max())],
@@ -225,6 +232,7 @@ def main():
         "risk_deciles": [float(value) for value in deciles],
         "policy_curve": curve,
         "variants": variant_table(train, val, test),
+        "logistic_baseline": logistic_baseline(train, test),
         "fairness": {
             "Age band": ev.group_audit(age_band.astype(str).to_numpy(), approved, y_nb),
             "Employment": ev.group_audit(test_nb["employment"].astype(str).to_numpy(), approved, y_nb),

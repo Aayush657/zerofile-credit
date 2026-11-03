@@ -1,0 +1,238 @@
+{
+  "configurations": 32,
+  "auc_test_low": 0.6293460034947613,
+  "auc_test_high": 0.6314267340842564,
+  "best_on_validation": {
+    "num_leaves": 7,
+    "min_child_samples": 1000,
+    "colsample_bytree": 0.8,
+    "auc_validation": 0.6258184680661422,
+    "auc_test_no_bureau": 0.6311920326446667
+  },
+  "rows": [
+    {
+      "num_leaves": 7,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6253010730915318,
+      "auc_test_no_bureau": 0.6304476995120922
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6254162147680916,
+      "auc_test_no_bureau": 0.6310423116576267
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6250835318913261,
+      "auc_test_no_bureau": 0.6305723293260588
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6254133716210468,
+      "auc_test_no_bureau": 0.630764536116073
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6251154132780052,
+      "auc_test_no_bureau": 0.6304588097375602
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6251421226797146,
+      "auc_test_no_bureau": 0.6305477965946955
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.625259431389083,
+      "auc_test_no_bureau": 0.6305503986013169
+    },
+    {
+      "num_leaves": 7,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6258184680661422,
+      "auc_test_no_bureau": 0.6311920326446667
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6246191627648519,
+      "auc_test_no_bureau": 0.6303430851336757
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6253379819943267,
+      "auc_test_no_bureau": 0.6310299385798162
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6247937620429238,
+      "auc_test_no_bureau": 0.6305426843649414
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6253421889273523,
+      "auc_test_no_bureau": 0.6309514039821738
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6243495549896999,
+      "auc_test_no_bureau": 0.6308038891163448
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6255798459707752,
+      "auc_test_no_bureau": 0.630943550411827
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6249924298320555,
+      "auc_test_no_bureau": 0.6310790560163259
+    },
+    {
+      "num_leaves": 15,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6255357771915809,
+      "auc_test_no_bureau": 0.6312872585674026
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6237015832861786,
+      "auc_test_no_bureau": 0.6305316194783053
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6250557823138686,
+      "auc_test_no_bureau": 0.6310268842907008
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6242018500334705,
+      "auc_test_no_bureau": 0.6304474142091987
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6242142165673646,
+      "auc_test_no_bureau": 0.6310000337497842
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.624175539365798,
+      "auc_test_no_bureau": 0.6308587457854792
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6249549488325993,
+      "auc_test_no_bureau": 0.6311956564337439
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6248332771638428,
+      "auc_test_no_bureau": 0.6308343800337162
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6253327580005695,
+      "auc_test_no_bureau": 0.6310806760501977
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6228893967258041,
+      "auc_test_no_bureau": 0.6293460034947613
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 100,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6235766119487993,
+      "auc_test_no_bureau": 0.6305177800763214
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6228014498663027,
+      "auc_test_no_bureau": 0.629382736795209
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 200,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6239327392311761,
+      "auc_test_no_bureau": 0.630752723691623
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6231390273478384,
+      "auc_test_no_bureau": 0.6301323944759698
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 500,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.624394796855988,
+      "auc_test_no_bureau": 0.6312360964601563
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.6,
+      "auc_validation": 0.6234706122613143,
+      "auc_test_no_bureau": 0.6303796746768513
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 1000,
+      "colsample_bytree": 0.8,
+      "auc_validation": 0.6246374409642476,
+      "auc_test_no_bureau": 0.6314267340842564
+    }
+  ]
+}

@@ -10,7 +10,6 @@ from zerofile.features import ALT_SIGNALS
 
 # Gap between defaulters and repayers in the shared habit, in standard deviations.
 SCENARIOS = {"Weak": 0.25, "Moderate": 0.5, "Strong": 0.77}
-SHIPPED_SCENARIO = "Moderate"
 CENTRES = {"bills_on_time": 1.4, "topup_regularity": 0.6, "income_regularity": 0.2}
 
 

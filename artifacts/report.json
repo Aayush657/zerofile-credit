@@ -637,6 +637,10 @@
       "worst_region_ratio": 0.1001963609756826
     }
   ],
+  "logistic_baseline": {
+    "auc_no_bureau": 0.626146898832744,
+    "auc_rated": 0.6056596669018529
+  },
   "fairness": {
     "Age band": [
       {
@@ -968,5 +972,5 @@
     "trees": 152,
     "features": 6
   },
-  "latency_ms_p50": 0.859849969856441
+  "latency_ms_p50": 0.8170501096174121
 }

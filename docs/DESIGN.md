@@ -153,4 +153,4 @@ model file is small enough to commit, so cold starts stay short and there is no 
 | 4 Nov 12:00 | Repo public and app deployed |
 | 4 Nov 16:00 | Demo video uploaded to Drive |
 | **4 Nov 17:00** | **Working version frozen (3 hours of buffer)** |
-| 4 Nov 19:00 | Submitted on Unstop, one hour before the deadline |
+| 4 Nov 19:00 | Submitted on the event portal, one hour before the deadline |

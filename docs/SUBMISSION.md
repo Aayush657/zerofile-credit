@@ -4,7 +4,7 @@ Deadline: **4 November 2026, 8:00 PM IST**. Late entries are not accepted. Aim t
 
 ## What to submit
 
-Use the Submit tab in your dashboard, on Unstop.
+Sign in at https://neuralstorm.dev/login with the Google account you registered with, then use the Submit tab in your dashboard.
 
 | Field | Value |
 |---|---|

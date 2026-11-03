@@ -1,6 +1,6 @@
 # Deploying ZeroFile
 
-**Live at [zerofile-o7cn.onrender.com](https://zerofile-o7cn.onrender.com).** Every push to `main` redeploys it automatically.
+**Live at [zerofile-o7cn.onrender.com](https://zerofile-o7cn.onrender.com).** The service is connected by public URL, and a push did not start a deploy when tested. After a code change, open the service and choose **Manual Deploy → Deploy latest commit**.
 
 Host: **Render**, on its free plan. The app needs no secrets and no dataset, because the trained model is in the repo. To set it up again, or under a different account, follow these steps.
 

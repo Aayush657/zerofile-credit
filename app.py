@@ -84,14 +84,14 @@ def score_scale(points: float, high_at: float, approve_at: float):
     )
     names = alt.Chart(bands).mark_text(dy=-20, fontSize=12, color=SECONDARY).encode(x=alt.X("middle:Q", scale=alt.Scale(domain=[300, 900])), text="band:N")
     marker = alt.Chart(pd.DataFrame({"points": [points]})).mark_tick(color=INK, thickness=3, size=20).encode(x=alt.X("points:Q", scale=alt.Scale(domain=[300, 900])))
-    return alt.layer(bar, names, marker).properties(height=70)
+    return alt.layer(bar, names, marker).properties(height=96)
 
 
 def breakdown_chart(reasons: list):
     rows = pd.DataFrame(reasons)
     rows["label"] = rows["points"].map(lambda value: f"{value:+.0f}")
     y = alt.Y("factor:N", sort=None, title=None, axis=alt.Axis(domain=False, ticks=False, labelLimit=160))
-    x = alt.X("points:Q", title="Points gained or lost against the average applicant", axis=alt.Axis(tickCount=6))
+    x = alt.X("points:Q", title="Points gained or lost against the average applicant", axis=alt.Axis(tickCount=6), scale=alt.Scale(padding=40))
     tip = [alt.Tooltip("factor:N", title="Factor"), alt.Tooltip("label:N", title="Points"), alt.Tooltip("detail:N", title="Why")]
     bars = alt.Chart(rows).mark_bar(size=16, cornerRadius=3).encode(y=y, x=x, color=alt.condition(alt.datum.points >= 0, alt.value(BLUE), alt.value(ORANGE)), tooltip=tip)
     gains = alt.Chart(rows[rows["points"] >= 0]).mark_text(align="left", dx=5, color=SECONDARY).encode(y=y, x="points:Q", text="label:N")

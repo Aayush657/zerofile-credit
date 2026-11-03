@@ -90,4 +90,9 @@ def test_approved_applicants_need_no_recourse():
 
 def test_recourse_never_changes_identity_or_channel():
     for option in scorer.recourse(Applicant(vehicle_price=70_000, down_payment=7_000)):
-        assert not set(option) & {"aadhaar", "pan", "voter_id", "dealer", "brand", "branch", "employment"}
+        assert not set(option) & {"dealer", "brand", "branch", "employment"}
+
+
+def test_points_for_risk_inverts_the_score():
+    result = scorer.score(TYPICAL)
+    assert scorer.points_for_risk(result.risk) == pytest.approx(result.points, abs=1e-6)

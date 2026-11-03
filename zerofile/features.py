@@ -1,11 +1,13 @@
-"""Model features. Bureau data, age and region are deliberately left out of FEATURES."""
+"""Model features. Bureau data, ID documents, age and region are deliberately left out of FEATURES."""
 import numpy as np
 import pandas as pd
 
 LOAN = ["ltv_pct", "log_vehicle_price"]
-PROFILE = ["self_employed", "aadhaar", "pan", "voter_id", "driving_licence", "passport"]
+PROFILE = ["self_employed"]
 CHANNEL = ["brand_risk", "dealer_risk", "branch_risk"]
 FEATURES = LOAN + PROFILE + CHANNEL
+# Measured and rejected: they add about 0.001 AUC, and a score should not punish someone for withholding Aadhaar.
+ID_DOCUMENTS = ["aadhaar", "pan", "voter_id", "driving_licence", "passport"]
 ENCODED = {"brand": "brand_risk", "dealer": "dealer_risk", "branch": "branch_risk", "region": "region_risk"}
 
 

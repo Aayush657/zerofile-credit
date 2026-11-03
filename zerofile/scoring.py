@@ -18,13 +18,12 @@ FACTOR_GROUPS = {
     "Down payment": ["ltv_pct"],
     "Vehicle price": ["log_vehicle_price"],
     "Employment": ["self_employed"],
-    "ID documents": ["aadhaar", "pan", "voter_id", "driving_licence", "passport"],
     "Vehicle brand": ["brand_risk"],
     "Dealer record": ["dealer_risk"],
     "Branch record": ["branch_risk"],
 }
 EMPLOYMENT_CODES = {"Salaried": 0.0, "Self employed": 1.0, "Not stated": float("nan")}
-TIER_LABELS = {"better": "better than typical", "typical": "typical", "worse": "worse than typical"}
+TIER_LABELS = {"better": "better than average", "average": "average", "worse": "worse than average"}
 RECOURSE_STEP = 500  # Rupees between the options tried, rounded the way a person would pay.
 
 
@@ -37,14 +36,9 @@ class Applicant:
     vehicle_price: int
     down_payment: int
     employment: str = "Not stated"
-    aadhaar: bool = True
-    pan: bool = False
-    voter_id: bool = False
-    driving_licence: bool = False
-    passport: bool = False
-    brand: str = "typical"
-    dealer: str = "typical"
-    branch: str = "typical"
+    brand: str = "average"
+    dealer: str = "average"
+    branch: str = "average"
 
     @property
     def loan(self) -> int:
@@ -77,11 +71,6 @@ class Scorer:
             "ltv_pct": a.ltv_pct,
             "log_vehicle_price": math.log(a.vehicle_price),
             "self_employed": EMPLOYMENT_CODES[a.employment],
-            "aadhaar": float(a.aadhaar),
-            "pan": float(a.pan),
-            "voter_id": float(a.voter_id),
-            "driving_licence": float(a.driving_licence),
-            "passport": float(a.passport),
             "brand_risk": self.meta["tiers"]["brand_risk"][a.brand],
             "dealer_risk": self.meta["tiers"]["dealer_risk"][a.dealer],
             "branch_risk": self.meta["tiers"]["branch_risk"][a.branch],
@@ -91,6 +80,10 @@ class Scorer:
     def _risk(self, margin):
         platt = self.meta["platt"]
         return 1 / (1 + np.exp(-(platt["slope"] * margin + platt["intercept"])))
+
+    def points_for_risk(self, risk: float) -> float:
+        platt = self.meta["platt"]
+        return float(points_from_margin((math.log(risk / (1 - risk)) - platt["intercept"]) / platt["slope"]))
 
     def _band(self, risk: float) -> str:
         thresholds = self.meta["thresholds"]
@@ -132,12 +125,10 @@ class Scorer:
         return notes
 
     def _reasons(self, a: Applicant, factors: dict) -> list:
-        documents = [name for name, given in (("Aadhaar", a.aadhaar), ("PAN", a.pan), ("Voter ID", a.voter_id), ("Driving licence", a.driving_licence), ("Passport", a.passport)) if given]
         details = {
             "Down payment": f"Paying ₹{a.down_payment:,} down, {100 - a.ltv_pct:.0f}% of the vehicle price.",
             "Vehicle price": f"The vehicle costs ₹{a.vehicle_price:,}.",
             "Employment": f"Employment type: {a.employment.lower()}.",
-            "ID documents": "Documents given: " + (", ".join(documents) if documents else "none") + ".",
             "Vehicle brand": f"This vehicle brand's repayment record is {TIER_LABELS[a.brand]}.",
             "Dealer record": f"This dealer's repayment record is {TIER_LABELS[a.dealer]}.",
             "Branch record": f"This branch's repayment record is {TIER_LABELS[a.branch]}.",
@@ -145,7 +136,7 @@ class Scorer:
         ordered = sorted(factors.items(), key=lambda item: -abs(item[1]))
         return [{"factor": factor, "points": points, "detail": details[factor]} for factor, points in ordered]
 
-    def _bands_for(self, applicants: list) -> np.ndarray:
+    def _risks_for(self, applicants: list) -> np.ndarray:
         rows = np.array([self._row(a) for a in applicants], dtype=float)
         return self._risk(self.booster.predict(rows, raw_score=True))
 
@@ -153,14 +144,14 @@ class Scorer:
         """The smallest change to the loan itself that reaches the approve band. Identity, dealer and brand are never suggested."""
         self.validate(a)
         cutoff = self.meta["thresholds"]["approve"]
-        if self._bands_for([a])[0] <= cutoff:
+        if self._risks_for([a])[0] <= cutoff:
             return []
         options = []
         # The monotonic LTV constraint means a bigger down payment can only help, so the first pass is the smallest.
         most_down = int(a.vehicle_price * (1 - self.meta["ltv_range"][0] / 100))
         downs = list(range(a.down_payment + RECOURSE_STEP, most_down + 1, RECOURSE_STEP))
         if downs:
-            risks = self._bands_for([replace(a, down_payment=down) for down in downs])
+            risks = self._risks_for([replace(a, down_payment=down) for down in downs])
             hits = np.flatnonzero(risks <= cutoff)
             if hits.size:
                 down = downs[hits[0]]
@@ -168,7 +159,7 @@ class Scorer:
         low_price = self.meta["price_range"][0]
         prices = list(range(a.vehicle_price - RECOURSE_STEP, max(low_price, a.down_payment + 1) - 1, -RECOURSE_STEP))
         if prices:
-            risks = self._bands_for([replace(a, vehicle_price=price) for price in prices])
+            risks = self._risks_for([replace(a, vehicle_price=price) for price in prices])
             hits = np.flatnonzero(risks <= cutoff)
             if hits.size:
                 price = prices[hits[0]]

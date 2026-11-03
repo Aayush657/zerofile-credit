@@ -3,37 +3,32 @@
     "ltv_pct",
     "log_vehicle_price",
     "self_employed",
-    "aadhaar",
-    "pan",
-    "voter_id",
-    "driving_licence",
-    "passport",
     "brand_risk",
     "dealer_risk",
     "branch_risk"
   ],
   "platt": {
-    "slope": 0.9644138453367224,
-    "intercept": -0.05911617041470789
+    "slope": 0.9703369429251593,
+    "intercept": -0.045781670316887256
   },
   "thresholds": {
-    "approve": 0.18115442834233317,
-    "high_risk": 0.2657819478462555
+    "approve": 0.1800149071498786,
+    "high_risk": 0.265450826171007
   },
   "tiers": {
     "brand_risk": {
       "better": 0.19451460158619382,
-      "typical": 0.1959182001867188,
+      "average": 0.20426976760853596,
       "worse": 0.21810690269907937
     },
     "dealer_risk": {
       "better": 0.18984395463942508,
-      "typical": 0.20209195171293637,
+      "average": 0.20426976760853596,
       "worse": 0.21668147386407188
     },
     "branch_risk": {
       "better": 0.17954085637513192,
-      "typical": 0.1925230931342381,
+      "average": 0.20426976760853596,
       "worse": 0.22422137190413666
     }
   },

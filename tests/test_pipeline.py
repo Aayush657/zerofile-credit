@@ -5,7 +5,7 @@ import pytest
 
 from zerofile import evaluate as ev
 from zerofile.data import BUREAU_NUMERIC, REQUIRED_COLUMNS, prepare, split
-from zerofile.features import FEATURES, encode_channels, monotone_for
+from zerofile.features import FEATURES, ID_DOCUMENTS, encode_channels, monotone_for
 
 
 def raw_rows(**overrides) -> pd.DataFrame:
@@ -60,8 +60,8 @@ def test_split_is_by_time_with_no_overlap():
     assert test["date"].min() == pd.Timestamp("2018-10-01")
 
 
-def test_features_exclude_bureau_age_and_region():
-    assert not set(FEATURES) & (set(BUREAU_NUMERIC) | {"age", "region", "region_risk", "no_bureau", "bureau_score"})
+def test_features_exclude_bureau_identity_age_and_region():
+    assert not set(FEATURES) & (set(BUREAU_NUMERIC) | set(ID_DOCUMENTS) | {"age", "region", "region_risk", "no_bureau"})
 
 
 def test_only_ltv_is_monotonic():

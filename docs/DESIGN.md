@@ -23,6 +23,7 @@ Measured on the real data before the design was fixed:
 | What benchmark is fair? | No-bureau default (24.1%) is close to all scored borrowers (23.0%), which is too easy to beat | Benchmark against bureau **low-risk** grades A to G (19.0%) |
 | Do we need age? | Adds about 0.000 AUC on no-bureau applicants | Excluded from the model, kept for the audit |
 | Do we need state? | Adds about 0.002 AUC | Excluded from the model, kept for the audit |
+| Do we need ID-document flags? | Removing all five costs 0.001 AUC, and keeping them penalised applicants who withheld Aadhaar by about 33 points | Excluded. A score should not punish someone for withholding a voluntary document |
 | Pincode and employee code? | Pincode adds almost nothing. The employee code records who logged the loan, not anything about the applicant | Dropped when the data loads |
 | Reported LTV or computed? | Same AUC (0.631) | Use `loan / vehicle price`, so the form and the data agree |
 | Monotonic LTV? | No AUC cost | Higher LTV can never lower risk, which makes recourse trustworthy |
@@ -74,7 +75,7 @@ model file is small enough to commit, so cold starts stay short and there is no 
 
 ## Model
 
-- **ZeroFile model:** LightGBM on 11 non-bureau features, with early stopping on validation and a monotonic LTV constraint.
+- **ZeroFile model:** LightGBM on 6 non-bureau features (LTV, vehicle price, employment type, and the brand, dealer and branch repayment records), with early stopping on validation and a monotonic LTV constraint.
 - **Calibration:** Platt scaling fitted on validation. It stays smooth for the policy slider and needs nothing but NumPy at runtime.
 - **Bands:** the approve and high-risk cutoffs are **fixed on validation before October is scored**, so the headline is not tuned on the test month.
 - **ZeroFile Score (300 to 900):** a linear map of the model's log-odds, where 100 points halve the odds of default. SHAP values add up exactly to the score, so the breakdown is arithmetic and not an approximation.

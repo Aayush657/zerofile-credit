@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 
 from zerofile import evaluate as ev
 from zerofile.data import BUREAU_FEATURES, load, split
-from zerofile.features import CHANNEL, FEATURES, LOAN, PROFILE, encode_channels, monotone_for
+from zerofile.features import CHANNEL, FEATURES, ID_DOCUMENTS, LOAN, PROFILE, encode_channels, monotone_for
 from zerofile.scoring import ARTIFACTS, FACTOR_GROUPS, Applicant, Scorer, points_from_margin
 
 PARAMS = dict(
@@ -19,8 +19,9 @@ PARAMS = dict(
 )
 VARIANTS = {
     "Loan terms only": LOAN,
-    "+ ID documents and employment": LOAN + PROFILE,
+    "+ employment type": LOAN + PROFILE,
     "ZeroFile: + brand, dealer, branch": FEATURES,
+    "ZeroFile + ID documents (rejected)": FEATURES + ID_DOCUMENTS,
     "ZeroFile + age and region (rejected)": FEATURES + ["age", "region_risk"],
     "ZeroFile + bureau data (comparison)": FEATURES + BUREAU_FEATURES,
 }
@@ -108,7 +109,7 @@ def main():
     ARTIFACTS.mkdir(exist_ok=True)
     booster.save_model(str(ARTIFACTS / "model.txt"))
     tiers = {
-        name: {"better": float(train[name].quantile(0.25)), "typical": float(train[name].quantile(0.5)), "worse": float(train[name].quantile(0.75))}
+        name: {"better": float(train[name].quantile(0.25)), "average": float(train["default"].mean()), "worse": float(train[name].quantile(0.75))}
         for name in CHANNEL
     }
     meta = {

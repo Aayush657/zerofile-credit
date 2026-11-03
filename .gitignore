@@ -1,0 +1,12 @@
+# Raw loan data has an unclear licence and contains personal fields, so it is never committed.
+data/
+*.csv
+*.zip
+
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.streamlit/secrets.toml
+.claude/

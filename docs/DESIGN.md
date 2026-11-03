@@ -1,12 +1,12 @@
-# Saakh: design
+# ZeroFile: design
 
 **Neural Storm 2026 · Human Impact · FinTech Inclusion · HI-04 Alternative Credit Scoring for the Unbanked**
-Solo build by Aayush Sharma (Thapar University). *Saakh* (साख) is Hindi for creditworthiness.
+Solo build by Aayush Sharma (Thapar University). The name refers to the people it serves: applicants with a zero-length credit file.
 
 ## Goal
 
 A bureau score cannot rank someone who has no bureau file. In one real Indian lender's book, half of all
-borrowers are in that position. Saakh scores those people from the loan application alone, explains every
+borrowers are in that position. ZeroFile scores those people from the loan application alone, explains every
 result, shows what would change it, and reports what the policy would do to a lender's book.
 
 **Success means:** a public demo a judge can use in under a minute, one metric they remember, and evidence
@@ -30,13 +30,13 @@ Measured on the real data before the design was fixed:
 ## Architecture
 
 ```text
-Kaggle CSV ──> saakh/data.py ──> saakh/features.py ──> saakh/train.py ──> artifacts/
+Kaggle CSV ──> zerofile/data.py ──> zerofile/features.py ──> zerofile/train.py ──> artifacts/
  (not committed)  validate,        encode brand,          LightGBM,         model.txt
                   drop private     dealer, branch         calibration,      meta.json
                   columns          risk by time           thresholds,       report.json
                                                           audit                 │
                                                                                 ▼
-                 Streamlit app.py <──────── saakh/scoring.py <──────────────────┘
+                 Streamlit app.py <──────── zerofile/scoring.py <──────────────────┘
                  applicant · lender · evidence · fairness       score, reasons, recourse
 ```
 
@@ -46,11 +46,11 @@ The deployed app reads only `artifacts/`. No borrower row ever reaches the host.
 
 ```text
 app.py                  Streamlit entry point
-saakh/data.py           download, validation, time split
-saakh/features.py       feature list and target encoding
-saakh/evaluate.py       metrics, policy curves, fairness audit
-saakh/train.py          end-to-end training run that writes artifacts/
-saakh/scoring.py        runtime scoring, reasons and recourse
+zerofile/data.py           download, validation, time split
+zerofile/features.py       feature list and target encoding
+zerofile/evaluate.py       metrics, policy curves, fairness audit
+zerofile/train.py          end-to-end training run that writes artifacts/
+zerofile/scoring.py        runtime scoring, reasons and recourse
 artifacts/              trained model and aggregate report (committed)
 tests/                  pytest suite, including an app smoke test
 docs/                   design, deployment guide, demo script, submission text, screenshots
@@ -67,24 +67,24 @@ model file is small enough to commit, so cold starts stay short and there is no 
 
 ## Data pipeline
 
-1. `python -m saakh.data` downloads the public [L&T Vehicle Loan Default](https://www.kaggle.com/datasets/mamtadhaker/lt-vehicle-loan-default-prediction) dataset into the ignored `data/` folder.
+1. `python -m zerofile.data` downloads the public [L&T Vehicle Loan Default](https://www.kaggle.com/datasets/mamtadhaker/lt-vehicle-loan-default-prediction) dataset into the ignored `data/` folder.
 2. Load, check the schema, derive LTV and age, and **drop date of birth, pincode, customer ID and employee code**.
 3. Split by disbursal date: train 1 Aug to 23 Sep, validate 24 to 30 Sep, test 1 to 31 Oct.
 4. Encode brand, dealer and branch as smoothed historic default rates. Training rows use out-of-fold values, and later periods only see what training saw.
 
 ## Model
 
-- **Saakh model:** LightGBM on 11 non-bureau features, with early stopping on validation and a monotonic LTV constraint.
+- **ZeroFile model:** LightGBM on 11 non-bureau features, with early stopping on validation and a monotonic LTV constraint.
 - **Calibration:** Platt scaling fitted on validation. It stays smooth for the policy slider and needs nothing but NumPy at runtime.
 - **Bands:** the approve and high-risk cutoffs are **fixed on validation before October is scored**, so the headline is not tuned on the test month.
-- **Saakh Score (300 to 900):** a linear map of the model's log-odds, where 100 points halve the odds of default. SHAP values add up exactly to the score, so the breakdown is arithmetic and not an approximation.
+- **ZeroFile Score (300 to 900):** a linear map of the model's log-odds, where 100 points halve the odds of default. SHAP values add up exactly to the score, so the breakdown is arithmetic and not an approximation.
 - **Recourse:** the smallest extra down payment, or the cheaper vehicle, that reaches the approve band. Only levers a person can act on are offered, never identity, dealer or age.
 
 ## Evaluation
 
 - **Headline:** the share of no-bureau applicants approved, their default rate against the bureau low-risk benchmark, and rupees of credit unlocked.
 - **Ranking:** AUC with bootstrap 95% CIs, KS, and default rate by risk decile.
-- **Comparisons:** an LTV rule at the same approval rate, the raw bureau score on rated borrowers (paired bootstrap), and Saakh with bureau data added.
+- **Comparisons:** an LTV rule at the same approval rate, the raw bureau score on rated borrowers (paired bootstrap), and ZeroFile with bureau data added.
 - **Calibration:** Brier score, expected calibration error, predicted against actual by month.
 - **Fairness:** approval rate, default rate, and approval among people who repaid, by age band, employment type and region, with the four-fifths rule as the flag.
 

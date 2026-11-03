@@ -43,6 +43,37 @@ def test_close_call_shows_recourse_and_approved_case_does_not():
     assert "more down" not in all_text(app)
 
 
+def test_loan_range_is_shown():
+    assert "stays in the approve band" in all_text(start())
+
+
+def test_simulated_toggle_is_labelled_and_changes_the_result():
+    app = start()
+    before = next(metric.value for metric in app.metric if metric.label == "ZeroFile Score")
+    assert "back-test, no-file applicants in this band" in all_text(app)
+    app.toggle(key="use_alt").set_value(True).run()
+    assert not app.exception
+    assert next(metric.value for metric in app.metric if metric.label == "ZeroFile Score") != before
+    assert "simulated signals" in all_text(app)
+    assert "back-test, no-file applicants in this band" not in all_text(app)
+    assert app.slider(key="bills_on_time").value == 90
+
+
+def test_simulated_toggle_survives_switching_off_and_on():
+    app = start()
+    app.toggle(key="use_alt").set_value(True).run()
+    app.toggle(key="use_alt").set_value(False).run()
+    assert not app.exception
+    app.toggle(key="use_alt").set_value(True).run()
+    assert not app.exception and app.slider(key="bills_on_time").value == 90
+
+
+def test_lender_view_labels_the_simulation():
+    text = all_text(start())
+    assert "This is a simulation, not a result" in text
+    assert "Closest group to gig workers" in text
+
+
 def test_invalid_down_payment_shows_a_message_not_a_crash():
     app = start()
     app.number_input(key="down_payment").set_value(500_000).run()

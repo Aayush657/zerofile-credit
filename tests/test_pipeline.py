@@ -4,8 +4,9 @@ import pandas as pd
 import pytest
 
 from zerofile import evaluate as ev
+from zerofile.altdata import SCENARIOS, simulate
 from zerofile.data import BUREAU_NUMERIC, REQUIRED_COLUMNS, prepare, split
-from zerofile.features import FEATURES, ID_DOCUMENTS, encode_channels, monotone_for
+from zerofile.features import ALT_SIGNALS, FEATURES, ID_DOCUMENTS, encode_channels, monotone_for
 
 
 def raw_rows(**overrides) -> pd.DataFrame:
@@ -60,12 +61,32 @@ def test_split_is_by_time_with_no_overlap():
     assert test["date"].min() == pd.Timestamp("2018-10-01")
 
 
-def test_features_exclude_bureau_identity_age_and_region():
-    assert not set(FEATURES) & (set(BUREAU_NUMERIC) | set(ID_DOCUMENTS) | {"age", "region", "region_risk", "no_bureau"})
+def test_measured_features_exclude_bureau_identity_age_region_and_simulated_signals():
+    assert not set(FEATURES) & (set(BUREAU_NUMERIC) | set(ID_DOCUMENTS) | set(ALT_SIGNALS) | {"age", "region", "region_risk", "no_bureau"})
 
 
 def test_only_ltv_is_monotonic():
     assert monotone_for(["ltv_pct", "pan", "dealer_risk"]) == [1, 0, 0]
+
+
+def test_simulated_signals_scale_with_the_assumed_strength():
+    default = np.random.default_rng(0).integers(0, 2, 20_000)
+    aucs = []
+    for strength in SCENARIOS.values():
+        signals = simulate(default, strength)
+        assert set(signals) == set(ALT_SIGNALS)
+        assert all(((values > 0) & (values < 1)).all() for values in signals.values())
+        aucs.append(ev.roc_auc_score(default, -signals["bills_on_time"]))
+    assert aucs == sorted(aucs) and 0.5 < aucs[0] < aucs[-1] < 0.7
+
+
+def test_simulated_signals_are_reproducible():
+    default = np.array([0, 1] * 50)
+    assert (simulate(default, 0.5, seed=3)["topup_regularity"] == simulate(default, 0.5, seed=3)["topup_regularity"]).all()
+
+
+def test_better_habits_can_only_lower_risk():
+    assert monotone_for(["ltv_pct", "bills_on_time", "pan"]) == [1, -1, 0]
 
 
 def channel_frame(rows: int, seed: int = 0) -> pd.DataFrame:

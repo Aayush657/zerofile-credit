@@ -71,5 +71,20 @@ def test_readme_numbers_match_the_report():
         f"{REPORT['population']['no_bureau']:,}",
         f"{REPORT['regional_floor']['people_added']:,}",
     ]
+    for row in REPORT["alt_scenarios"]:
+        expected += [f"{row['scenario']} (simulated)", f"{row['people']:,}", f"₹{row['crore']:.0f} crore", f"{row['auc_no_bureau']:.3f}", f"{100 * row['share']:.1f}%", f"{100 * row['default']:.1f}%"]
+    gig = next(row for row in REPORT["fairness"]["Employment"] if row["group"] == "Self employed")
+    expected += [f"{gig['n']:,} applicants", f"{100 * gig['approval']:.1f}% approved", f"{100 * gig['default_if_approved']:.1f}% default"]
     for number in expected:
         assert number in README, number
+
+
+def test_the_official_brief_is_addressed_and_the_simulation_is_labelled():
+    assert "## How this answers the official brief" in README
+    assert "**This is a simulation, not a result.**" in README
+    assert "Gender" in README and "rural" in README
+
+
+def test_no_commit_trailer_template_or_docs_credit_claude_as_a_contributor():
+    for name in ("docs/SUBMISSION.md", "docs/DEPLOY.md", "docs/DEMO_SCRIPT.md"):
+        assert "Co-Authored-By" not in (ROOT / name).read_text(encoding="utf-8")

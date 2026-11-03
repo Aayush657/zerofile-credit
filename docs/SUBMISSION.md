@@ -10,7 +10,7 @@ Use the Submit tab in your dashboard, on Unstop.
 |---|---|
 | GitHub repository link (required) | https://github.com/Aayush657/zerofile-credit |
 | Deployment link (strongly recommended) | https://zerofile.streamlit.app |
-| Demo video Drive link (optional) | Your Google Drive link, once uploaded |
+| Demo video Drive link (optional) | Leave blank: the live app is the demo |
 
 ## Project description
 
@@ -32,7 +32,6 @@ Paste this into the form:
 - [ ] No secrets or raw data: `git ls-files` lists no `.env`, `.csv` or `.zip` (a test also checks this)
 
 ### README
-- [ ] Demo video link added beside the live demo link at the top, once uploaded
 - [ ] Team name matches what you registered with (the README says "ZeroFile (solo entry)")
 - [ ] The Mermaid diagram and screenshots display on GitHub
 
@@ -41,11 +40,7 @@ Paste this into the form:
 - [ ] App is awake shortly before the deadline
 - [ ] On a fresh machine: clone, install, `streamlit run app.py` (see the README)
 
-### Video
-- [ ] 2 to 3 minutes, audio is clear, the live app is shown
-- [ ] Drive sharing is **Anyone with the link can view**: test it in a private window
-
 ### Submit
-- [ ] Repo, deployment and video links are all pasted in
+- [ ] Repo and deployment links are both pasted in
 - [ ] Description pasted
 - [ ] Confirmation received before 8:00 PM IST

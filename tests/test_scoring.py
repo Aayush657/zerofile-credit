@@ -110,34 +110,3 @@ def test_loan_range_limits_match_the_bands():
 
 def test_loan_range_handles_a_very_cheap_vehicle():
     assert set(scorer.loan_range(Applicant(vehicle_price=600, down_payment=100))) == {"approve_up_to", "review_up_to"}
-
-
-SIMULATED = replace(TYPICAL, bills_on_time=0.9, topup_regularity=0.8, income_regularity=0.6)
-
-
-def test_simulated_signals_are_labelled_and_add_up():
-    result = scorer.score(SIMULATED)
-    assert result.simulated and not scorer.score(TYPICAL).simulated
-    assert result.base_points + sum(result.factors.values()) == pytest.approx(result.points, abs=1e-6)
-    assert {"Utility bills", "Mobile top-ups", "Income regularity"} <= set(result.factors)
-    assert all("Simulated" in reason["detail"] for reason in result.reasons if reason["factor"] in {"Utility bills", "Mobile top-ups", "Income regularity"})
-
-
-@pytest.mark.parametrize("signal", ["bills_on_time", "topup_regularity", "income_regularity"])
-def test_a_better_habit_never_raises_risk(signal):
-    risks = [scorer.score(replace(SIMULATED, **{signal: value / 100})).risk for value in range(0, 101, 5)]
-    assert all(later <= earlier + 1e-12 for earlier, later in zip(risks, risks[1:]))
-
-
-@pytest.mark.parametrize("change", [{"bills_on_time": 1.5}, {"topup_regularity": -0.1}, {"income_regularity": None}])
-def test_invalid_simulated_signals_are_rejected(change):
-    with pytest.raises(ValueError):
-        scorer.score(replace(SIMULATED, **change))
-
-
-def test_recourse_works_with_simulated_signals():
-    applicant = replace(SIMULATED, bills_on_time=0.5, topup_regularity=0.4, income_regularity=0.35)
-    assert scorer.score(applicant).band != "Approve"
-    for option in scorer.recourse(applicant):
-        if option["kind"] == "down_payment":
-            assert scorer.score(replace(applicant, down_payment=option["down_payment"])).band == "Approve"

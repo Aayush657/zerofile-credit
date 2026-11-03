@@ -37,7 +37,7 @@ Paste this into the form:
 
 ### App
 - [ ] Live link opens in a private window and all six tabs work
-- [ ] App is awake shortly before the deadline (a scheduled workflow also keeps visiting it)
+- [ ] App is awake shortly before the deadline, and opened at least once a day until results on 9 November
 - [ ] On a fresh machine: clone, install, `streamlit run app.py` (see the README)
 
 ### Submit

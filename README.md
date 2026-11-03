@@ -13,6 +13,8 @@
 
 ### [Try the live demo: zerofile.streamlit.app](https://zerofile.streamlit.app)
 
+Free hosting, so if the app has been idle, press the wake-up button and give it a minute.
+
 ![A tour of ZeroFile: scoring a rural worker and a gig worker, a real vehicle loan, the lender simulator, the fairness audit and the evidence](docs/demo.gif)
 
 | | |

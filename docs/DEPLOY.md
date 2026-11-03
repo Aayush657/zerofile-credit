@@ -22,7 +22,7 @@ Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and
 
 ## Before judging
 
-Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. The `Keep demo awake` workflow visits the app every 6 hours until judging ends, and stops itself after 10 November. Still open the link yourself shortly before the deadline. Results are announced on 9 November.
+Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. Open the link yourself shortly before the deadline, and at least once a day until results are announced on 9 November.
 
 ## If the build fails
 

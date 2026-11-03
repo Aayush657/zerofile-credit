@@ -1,4 +1,5 @@
 """Metrics, policy curves and the fairness audit. Used at training time only."""
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, roc_curve
@@ -19,7 +20,11 @@ def bootstrap_auc_gain(y, score_a, score_b, resamples: int = 300, seed: int = 7)
         i = rng.integers(0, len(y), len(y))
         gaps.append(roc_auc_score(y[i], score_a[i]) - roc_auc_score(y[i], score_b[i]))
     low, high = np.percentile(gaps, [2.5, 97.5])
-    return {"value": float(roc_auc_score(y, score_a) - roc_auc_score(y, score_b)), "low": float(low), "high": float(high)}
+    return {
+        "value": float(roc_auc_score(y, score_a) - roc_auc_score(y, score_b)),
+        "low": float(low),
+        "high": float(high),
+    }
 
 
 def ks_statistic(y, score) -> float:
@@ -34,7 +39,11 @@ def brier(y, p) -> float:
 def calibration_table(y, p, bins: int = 10) -> list[dict]:
     """Equal-sized bins of predicted risk."""
     groups = pd.qcut(p, bins, labels=False, duplicates="drop")
-    table = pd.DataFrame({"group": groups, "p": p, "y": y}).groupby("group").agg(predicted=("p", "mean"), actual=("y", "mean"), n=("y", "size"))
+    table = (
+        pd.DataFrame({"group": groups, "p": p, "y": y})
+        .groupby("group")
+        .agg(predicted=("p", "mean"), actual=("y", "mean"), n=("y", "size"))
+    )
     return [{"predicted": float(r.predicted), "actual": float(r.actual), "n": int(r.n)} for r in table.itertuples()]
 
 
@@ -95,14 +104,18 @@ def group_audit(groups, approved, y, min_rows: int = 200) -> list[dict]:
         if len(part) < min_rows:
             continue
         repaid = part[part["default"] == 0]
-        rows.append({
-            "group": str(name),
-            "n": int(len(part)),
-            "approval": float(part["approved"].mean()),
-            "default": float(part["default"].mean()),
-            "default_if_approved": float(part.loc[part["approved"], "default"].mean()) if part["approved"].any() else None,
-            "approval_if_repaid": float(repaid["approved"].mean()),
-        })
+        rows.append(
+            {
+                "group": str(name),
+                "n": int(len(part)),
+                "approval": float(part["approved"].mean()),
+                "default": float(part["default"].mean()),
+                "default_if_approved": float(part.loc[part["approved"], "default"].mean())
+                if part["approved"].any()
+                else None,
+                "approval_if_repaid": float(repaid["approved"].mean()),
+            }
+        )
     top = max(row["approval"] for row in rows)
     for row in rows:
         row["ratio"] = row["approval"] / top

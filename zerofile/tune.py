@@ -2,6 +2,7 @@
 
 The shipped settings are not changed by this scan. It exists to show that AUC is limited by the data, not the settings.
 """
+
 import itertools
 import json
 
@@ -23,7 +24,7 @@ def main():
     y = test["default"].to_numpy()
     rows = []
     for values in itertools.product(*GRID.values()):
-        settings = dict(zip(GRID, values))
+        settings = dict(zip(GRID, values, strict=False))
         booster = lgb.train(
             {**PARAMS, **settings, "monotone_constraints": monotone_for(FEATURES)},
             lgb.Dataset(train[FEATURES], train["default"]),
@@ -31,13 +32,21 @@ def main():
             valid_sets=[lgb.Dataset(val[FEATURES], val["default"])],
             callbacks=[lgb.early_stopping(100, verbose=False)],
         )
-        rows.append({
-            **settings,
-            "auc_validation": float(ev.roc_auc_score(val["default"], booster.predict(val[FEATURES]))),
-            "auc_test_no_bureau": float(ev.roc_auc_score(y[no_bureau], booster.predict(test[FEATURES])[no_bureau])),
-        })
+        rows.append(
+            {
+                **settings,
+                "auc_validation": float(ev.roc_auc_score(val["default"], booster.predict(val[FEATURES]))),
+                "auc_test_no_bureau": float(ev.roc_auc_score(y[no_bureau], booster.predict(test[FEATURES])[no_bureau])),
+            }
+        )
     tests = [row["auc_test_no_bureau"] for row in rows]
-    summary = {"configurations": len(rows), "auc_test_low": min(tests), "auc_test_high": max(tests), "best_on_validation": max(rows, key=lambda row: row["auc_validation"]), "rows": rows}
+    summary = {
+        "configurations": len(rows),
+        "auc_test_low": min(tests),
+        "auc_test_high": max(tests),
+        "best_on_validation": max(rows, key=lambda row: row["auc_validation"]),
+        "rows": rows,
+    }
     (ARTIFACTS / "tuning.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print({key: summary[key] for key in ("configurations", "auc_test_low", "auc_test_high", "best_on_validation")})
 

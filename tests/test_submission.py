@@ -1,4 +1,5 @@
 """Submission rules that must never regress: required README content, no raw data, and numbers that match the reports."""
+
 import json
 import subprocess
 from pathlib import Path
@@ -27,7 +28,10 @@ def test_no_raw_data_or_secrets_are_tracked():
 
 
 def test_artifacts_hold_no_borrower_level_fields():
-    text = "".join((ROOT / "artifacts" / name).read_text(encoding="utf-8") for name in ("report.json", "meta.json", "worker_report.json", "worker_meta.json", "tuning.json"))
+    text = "".join(
+        (ROOT / "artifacts" / name).read_text(encoding="utf-8")
+        for name in ("report.json", "meta.json", "worker_report.json", "worker_meta.json", "tuning.json")
+    )
     for field in ("UniqueID", "Date.of.Birth", "pincode", "Employee_code", "supplier_id", "borrower_id", "B00001"):
         assert field not in text
 
@@ -39,24 +43,27 @@ def test_commit_history_credits_only_the_author():
     assert "co-authored-by" not in result.stdout.lower()
 
 
-@pytest.mark.parametrize("required", [
-    "HI-04",
-    "Human Impact",
-    "Aayush Sharma",
-    "ZeroFile (solo entry)",
-    "The problem.",
-    "What ZeroFile does.",
-    "## Tech stack",
-    "## Setup and running locally",
-    "## Screenshots",
-    "## Results: vehicle-loan model",
-    "## Results: worker model",
-    "## AI tools used",
-    "Claude",
-    "```mermaid",
-    "## Future scope",
-    "docs/demo.gif",
-])
+@pytest.mark.parametrize(
+    "required",
+    [
+        "HI-04",
+        "Human Impact",
+        "Aayush Sharma",
+        "ZeroFile (solo entry)",
+        "The problem.",
+        "What ZeroFile does.",
+        "## Tech stack",
+        "## Setup and running locally",
+        "## Screenshots",
+        "## Results: vehicle-loan model",
+        "## Results: worker model",
+        "## AI tools used",
+        "Claude",
+        "```mermaid",
+        "## Future scope",
+        "docs/demo.gif",
+    ],
+)
 def test_readme_has_required_content(required):
     assert required in README
 
@@ -88,15 +95,28 @@ def test_readme_numbers_match_the_real_data_report():
         f"between {TUNING['auc_test_low']:.3f} and {TUNING['auc_test_high']:.3f}",
     ]
     for row in REPORT["alt_scenarios"]:
-        expected += [f"{row['scenario']} (simulated)", f"{row['people']:,}", f"₹{row['crore']:.0f} crore", f"{row['auc_no_bureau']:.3f}", f"{100 * row['share']:.1f}%", f"{100 * row['default']:.1f}%"]
+        expected += [
+            f"{row['scenario']} (simulated)",
+            f"{row['people']:,}",
+            f"₹{row['crore']:.0f} crore",
+            f"{row['auc_no_bureau']:.3f}",
+            f"{100 * row['share']:.1f}%",
+            f"{100 * row['default']:.1f}%",
+        ]
     gig = next(row for row in REPORT["fairness"]["Employment"] if row["group"] == "Self employed")
-    expected += [f"{gig['n']:,} applicants", f"{100 * gig['approval']:.1f}% approved", f"{100 * gig['default_if_approved']:.1f}% default"]
+    expected += [
+        f"{gig['n']:,} applicants",
+        f"{100 * gig['approval']:.1f}% approved",
+        f"{100 * gig['default_if_approved']:.1f}% default",
+    ]
     for number in expected:
         assert number in README, number
 
 
 def test_readme_numbers_match_the_worker_report():
-    find = lambda rows, group: next(row for row in rows if row["group"] == group)
+    def find(rows, group):
+        return next(row for row in rows if row["group"] == group)
+
     auc = WORKER["auc"]
     expected = [
         f"{auc['value']:.3f} ({auc['low']:.3f} to {auc['high']:.3f})",
@@ -109,9 +129,20 @@ def test_readme_numbers_match_the_worker_report():
         expected += [f"{100 * band['share']:.1f}%", f"{100 * band['default']:.1f}%"]
     for variant in WORKER["variants"]:
         expected.append(f"{variant['auc']:.3f}")
-    rural, rural_reach = find(WORKER["fairness"]["Worker type"], "rural"), find(WORKER["fairness_not_high_risk"]["Worker type"], "rural")
-    no_upi, no_upi_reach = find(WORKER["fairness"]["UPI access"], "No UPI history"), find(WORKER["fairness_not_high_risk"]["UPI access"], "No UPI history")
-    expected += [f"{100 * rural['approval']:.0f}% (fails)", f"{100 * rural_reach['approval']:.0f}% (passes)", f"{100 * no_upi['approval']:.0f}% (fails)", f"{100 * no_upi_reach['approval']:.0f}% (fails)"]
+    rural, rural_reach = (
+        find(WORKER["fairness"]["Worker type"], "rural"),
+        find(WORKER["fairness_not_high_risk"]["Worker type"], "rural"),
+    )
+    no_upi, no_upi_reach = (
+        find(WORKER["fairness"]["UPI access"], "No UPI history"),
+        find(WORKER["fairness_not_high_risk"]["UPI access"], "No UPI history"),
+    )
+    expected += [
+        f"{100 * rural['approval']:.0f}% (fails)",
+        f"{100 * rural_reach['approval']:.0f}% (passes)",
+        f"{100 * no_upi['approval']:.0f}% (fails)",
+        f"{100 * no_upi_reach['approval']:.0f}% (fails)",
+    ]
     expected.append(f"{100 * WORKER['smaller_loan']['rescued_default_on_loan_asked']:.0f}% of those people defaulted")
     for number in expected:
         assert number in README, number

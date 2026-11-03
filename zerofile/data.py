@@ -1,4 +1,5 @@
 """Download, validate and split the datasets. Run `python -m zerofile.data` to fetch both."""
+
 import base64
 import io
 import os
@@ -22,16 +23,43 @@ VAL_START = pd.Timestamp("2018-09-24")
 TEST_START = pd.Timestamp("2018-10-01")
 
 BUREAU_NUMERIC = [
-    "PERFORM_CNS.SCORE", "PRI.NO.OF.ACCTS", "PRI.ACTIVE.ACCTS", "PRI.OVERDUE.ACCTS", "PRI.CURRENT.BALANCE",
-    "PRI.SANCTIONED.AMOUNT", "PRI.DISBURSED.AMOUNT", "SEC.NO.OF.ACCTS", "SEC.ACTIVE.ACCTS", "SEC.OVERDUE.ACCTS",
-    "SEC.CURRENT.BALANCE", "PRIMARY.INSTAL.AMT", "SEC.INSTAL.AMT", "NEW.ACCTS.IN.LAST.SIX.MONTHS",
-    "DELINQUENT.ACCTS.IN.LAST.SIX.MONTHS", "NO.OF_INQUIRIES",
+    "PERFORM_CNS.SCORE",
+    "PRI.NO.OF.ACCTS",
+    "PRI.ACTIVE.ACCTS",
+    "PRI.OVERDUE.ACCTS",
+    "PRI.CURRENT.BALANCE",
+    "PRI.SANCTIONED.AMOUNT",
+    "PRI.DISBURSED.AMOUNT",
+    "SEC.NO.OF.ACCTS",
+    "SEC.ACTIVE.ACCTS",
+    "SEC.OVERDUE.ACCTS",
+    "SEC.CURRENT.BALANCE",
+    "PRIMARY.INSTAL.AMT",
+    "SEC.INSTAL.AMT",
+    "NEW.ACCTS.IN.LAST.SIX.MONTHS",
+    "DELINQUENT.ACCTS.IN.LAST.SIX.MONTHS",
+    "NO.OF_INQUIRIES",
 ]
 BUREAU_FEATURES = BUREAU_NUMERIC + ["avg_account_months", "history_months"]
 REQUIRED_COLUMNS = set(BUREAU_NUMERIC) | {
-    "disbursed_amount", "asset_cost", "branch_id", "supplier_id", "manufacturer_id", "Date.of.Birth", "Employment.Type",
-    "DisbursalDate", "State_ID", "Aadhar_flag", "PAN_flag", "VoterID_flag", "Driving_flag", "Passport_flag",
-    "PERFORM_CNS.SCORE.DESCRIPTION", "AVERAGE.ACCT.AGE", "CREDIT.HISTORY.LENGTH", "loan_default",
+    "disbursed_amount",
+    "asset_cost",
+    "branch_id",
+    "supplier_id",
+    "manufacturer_id",
+    "Date.of.Birth",
+    "Employment.Type",
+    "DisbursalDate",
+    "State_ID",
+    "Aadhar_flag",
+    "PAN_flag",
+    "VoterID_flag",
+    "Driving_flag",
+    "Passport_flag",
+    "PERFORM_CNS.SCORE.DESCRIPTION",
+    "AVERAGE.ACCT.AGE",
+    "CREDIT.HISTORY.LENGTH",
+    "loan_default",
 }
 
 
@@ -90,31 +118,33 @@ def prepare(raw: pd.DataFrame) -> pd.DataFrame:
     # Two-digit years: pandas reads 68 as 2068, which for a borrower means 1968.
     born = born.where(born < date, born - pd.DateOffset(years=100))
     description = raw["PERFORM_CNS.SCORE.DESCRIPTION"]
-    frame = pd.DataFrame({
-        "date": date,
-        "default": raw["loan_default"],
-        "loan": raw["disbursed_amount"],
-        "vehicle_price": raw["asset_cost"],
-        "ltv_pct": 100 * raw["disbursed_amount"] / raw["asset_cost"],
-        "log_vehicle_price": np.log(raw["asset_cost"]),
-        "self_employed": raw["Employment.Type"].map({"Self employed": 1.0, "Salaried": 0.0}),
-        "employment": raw["Employment.Type"].fillna("Not stated"),
-        "aadhaar": raw["Aadhar_flag"],
-        "pan": raw["PAN_flag"],
-        "voter_id": raw["VoterID_flag"],
-        "driving_licence": raw["Driving_flag"],
-        "passport": raw["Passport_flag"],
-        "brand": raw["manufacturer_id"],
-        "dealer": raw["supplier_id"],
-        "branch": raw["branch_id"],
-        "region": raw["State_ID"],
-        "age": (date - born).dt.days / 365.25,
-        "no_bureau": description == NO_BUREAU,
-        "bureau_rated": description.str.match(r"^[A-M]-"),
-        "bureau_low_risk": description.str.match(r"^[A-G]-"),
-        "avg_account_months": _months(raw["AVERAGE.ACCT.AGE"]),
-        "history_months": _months(raw["CREDIT.HISTORY.LENGTH"]),
-    })
+    frame = pd.DataFrame(
+        {
+            "date": date,
+            "default": raw["loan_default"],
+            "loan": raw["disbursed_amount"],
+            "vehicle_price": raw["asset_cost"],
+            "ltv_pct": 100 * raw["disbursed_amount"] / raw["asset_cost"],
+            "log_vehicle_price": np.log(raw["asset_cost"]),
+            "self_employed": raw["Employment.Type"].map({"Self employed": 1.0, "Salaried": 0.0}),
+            "employment": raw["Employment.Type"].fillna("Not stated"),
+            "aadhaar": raw["Aadhar_flag"],
+            "pan": raw["PAN_flag"],
+            "voter_id": raw["VoterID_flag"],
+            "driving_licence": raw["Driving_flag"],
+            "passport": raw["Passport_flag"],
+            "brand": raw["manufacturer_id"],
+            "dealer": raw["supplier_id"],
+            "branch": raw["branch_id"],
+            "region": raw["State_ID"],
+            "age": (date - born).dt.days / 365.25,
+            "no_bureau": description == NO_BUREAU,
+            "bureau_rated": description.str.match(r"^[A-M]-"),
+            "bureau_low_risk": description.str.match(r"^[A-G]-"),
+            "avg_account_months": _months(raw["AVERAGE.ACCT.AGE"]),
+            "history_months": _months(raw["CREDIT.HISTORY.LENGTH"]),
+        }
+    )
     return pd.concat([frame, raw[BUREAU_NUMERIC]], axis=1)
 
 

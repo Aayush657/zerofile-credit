@@ -1,4 +1,5 @@
 """Model features. Bureau data, ID documents, age and region are deliberately left out of FEATURES."""
+
 import numpy as np
 import pandas as pd
 

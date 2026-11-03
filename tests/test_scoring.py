@@ -1,4 +1,5 @@
 """Scoring behaviour against the committed model, so these run on a fresh clone with no raw data."""
+
 from dataclasses import replace
 from itertools import product
 
@@ -25,14 +26,18 @@ def test_every_factor_group_is_reported_once():
 
 def test_a_bigger_down_payment_never_raises_risk():
     risks = [scorer.score(replace(TYPICAL, down_payment=down)).risk for down in range(7_000, 63_000, 500)]
-    assert all(later <= earlier + 1e-12 for earlier, later in zip(risks, risks[1:]))
+    assert all(later <= earlier + 1e-12 for earlier, later in zip(risks, risks[1:], strict=False))
 
 
 def test_score_stays_in_the_advertised_range():
     tiers = ("better", "worse")
     extremes = []
-    for down, dealer, branch, brand, employment in product((7_000, 60_000), tiers, tiers, tiers, ("Salaried", "Self employed")):
-        extremes.append(scorer.score(Applicant(70_000, down, employment, brand=brand, dealer=dealer, branch=branch)).points)
+    for down, dealer, branch, brand, employment in product(
+        (7_000, 60_000), tiers, tiers, tiers, ("Salaried", "Self employed")
+    ):
+        extremes.append(
+            scorer.score(Applicant(70_000, down, employment, brand=brand, dealer=dealer, branch=branch)).points
+        )
     assert 300 <= min(extremes) and max(extremes) <= 900
 
 
@@ -71,7 +76,10 @@ def test_recourse_reaches_the_approve_band():
     options = scorer.recourse(applicant)
     assert options, "A typical applicant should have a path to approval"
     for option in options:
-        changed = {"down_payment": replace(applicant, down_payment=option.get("down_payment", 0)), "cheaper_vehicle": replace(applicant, vehicle_price=option.get("vehicle_price", 1))}[option["kind"]]
+        changed = {
+            "down_payment": replace(applicant, down_payment=option.get("down_payment", 0)),
+            "cheaper_vehicle": replace(applicant, vehicle_price=option.get("vehicle_price", 1)),
+        }[option["kind"]]
         assert scorer.score(changed).band == "Approve"
 
 
@@ -83,7 +91,14 @@ def test_down_payment_recourse_is_the_smallest_option():
 
 
 def test_approved_applicants_need_no_recourse():
-    applicant = Applicant(vehicle_price=70_000, down_payment=35_000, employment="Salaried", dealer="better", branch="better", brand="better")
+    applicant = Applicant(
+        vehicle_price=70_000,
+        down_payment=35_000,
+        employment="Salaried",
+        dealer="better",
+        branch="better",
+        brand="better",
+    )
     assert scorer.score(applicant).band == "Approve"
     assert scorer.recourse(applicant) == []
 
@@ -101,7 +116,10 @@ def test_points_for_risk_inverts_the_score():
 def test_loan_range_limits_match_the_bands():
     loans = scorer.loan_range(TYPICAL)
     assert loans["approve_up_to"] <= loans["review_up_to"]
-    at = lambda loan: scorer.score(replace(TYPICAL, down_payment=TYPICAL.vehicle_price - loan)).band
+
+    def at(loan):
+        return scorer.score(replace(TYPICAL, down_payment=TYPICAL.vehicle_price - loan)).band
+
     assert at(loans["approve_up_to"]) == "Approve"
     assert at(loans["approve_up_to"] + 500) != "Approve"
     assert at(loans["review_up_to"]) != "High risk"

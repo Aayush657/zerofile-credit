@@ -1,7 +1,7 @@
 """End-to-end training run. `python -m zerofile.train` rewrites everything in artifacts/."""
+
 import json
 import time
-from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
@@ -18,8 +18,19 @@ from zerofile.features import ALT_SIGNALS, CHANNEL, FEATURES, ID_DOCUMENTS, LOAN
 from zerofile.scoring import ARTIFACTS, FACTOR_GROUPS, Applicant, Scorer, points_from_margin
 
 PARAMS = dict(
-    objective="binary", learning_rate=0.03, num_leaves=31, min_child_samples=200, subsample=0.8, subsample_freq=1,
-    colsample_bytree=0.8, reg_lambda=5.0, seed=7, deterministic=True, force_row_wise=True, n_jobs=8, verbose=-1,
+    objective="binary",
+    learning_rate=0.03,
+    num_leaves=31,
+    min_child_samples=200,
+    subsample=0.8,
+    subsample_freq=1,
+    colsample_bytree=0.8,
+    reg_lambda=5.0,
+    seed=7,
+    deterministic=True,
+    force_row_wise=True,
+    n_jobs=8,
+    verbose=-1,
 )
 VARIANTS = {
     "Loan terms only": LOAN,
@@ -57,7 +68,10 @@ def fix_cutoffs(booster: lgb.Booster, features: list[str], platt: dict, val: pd.
     val_nb = val[val["no_bureau"]]
     p = calibrated_risk(booster, features, platt, val_nb)
     target = float(val.loc[val["bureau_low_risk"], "default"].mean())
-    return {"approve": ev.pick_threshold(p, val_nb["default"].to_numpy(), target), "high_risk": float(np.quantile(p, 1 - HIGH_RISK_SHARE))}
+    return {
+        "approve": ev.pick_threshold(p, val_nb["default"].to_numpy(), target),
+        "high_risk": float(np.quantile(p, 1 - HIGH_RISK_SHARE)),
+    }
 
 
 def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) -> list[dict]:
@@ -65,7 +79,10 @@ def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) ->
     features = FEATURES + ALT_SIGNALS
     rows = []
     for name, strength in SCENARIOS.items():
-        tr, va, te = (frame.assign(**simulate(frame["default"].to_numpy(), strength, seed)) for frame, seed in ((train, 1), (val, 2), (test, 3)))
+        tr, va, te = (
+            frame.assign(**simulate(frame["default"].to_numpy(), strength, seed))
+            for frame, seed in ((train, 1), (val, 2), (test, 3))
+        )
         booster = fit(tr, va, features)
         platt = calibrate(booster, features, va)
         cutoffs = fix_cutoffs(booster, features, platt, va)
@@ -73,13 +90,17 @@ def alt_scenarios(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame) ->
         y, p = te_nb["default"].to_numpy(), calibrated_risk(booster, features, platt, te_nb)
         habit = te_nb[ALT_SIGNALS].mean(axis=1).to_numpy()
         by_quintile = pd.Series(y).groupby(pd.qcut(habit, 5, labels=False)).mean()
-        rows.append({
-            "scenario": name,
-            "signal_auc": float(np.mean([ev.roc_auc_score(y, -te_nb[signal].to_numpy()) for signal in ALT_SIGNALS])),
-            "signals_only_quintile_ratio": float(by_quintile.iloc[0] / by_quintile.iloc[-1]),
-            "auc_no_bureau": float(ev.roc_auc_score(y, p)),
-            **ev.policy_row(p <= cutoffs["approve"], y, te_nb["loan"].to_numpy()),
-        })
+        rows.append(
+            {
+                "scenario": name,
+                "signal_auc": float(
+                    np.mean([ev.roc_auc_score(y, -te_nb[signal].to_numpy()) for signal in ALT_SIGNALS])
+                ),
+                "signals_only_quintile_ratio": float(by_quintile.iloc[0] / by_quintile.iloc[-1]),
+                "auc_no_bureau": float(ev.roc_auc_score(y, p)),
+                **ev.policy_row(p <= cutoffs["approve"], y, te_nb["loan"].to_numpy()),
+            }
+        )
     return rows
 
 
@@ -98,16 +119,23 @@ def worst_region_ratio(booster, features, val, test) -> float:
     val_nb, test_nb = val[val["no_bureau"]], test[test["no_bureau"]]
     target = val.loc[val["bureau_low_risk"], "default"].mean()
     cutoff = ev.pick_threshold(booster.predict(val_nb[features]), val_nb["default"].to_numpy(), target)
-    audit = ev.group_audit(test_nb["region"].to_numpy(), booster.predict(test_nb[features]) <= cutoff, test_nb["default"].to_numpy())
+    audit = ev.group_audit(
+        test_nb["region"].to_numpy(), booster.predict(test_nb[features]) <= cutoff, test_nb["default"].to_numpy()
+    )
     return min(row["ratio"] for row in audit)
 
 
 def logistic_baseline(train, test) -> dict:
     """The same inputs in a plain linear model, to show what the gradient boosting adds."""
-    model = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(max_iter=1000)).fit(train[FEATURES], train["default"])
+    model = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(max_iter=1000)).fit(
+        train[FEATURES], train["default"]
+    )
     p, y = model.predict_proba(test[FEATURES])[:, 1], test["default"].to_numpy()
     no_bureau, rated = test["no_bureau"].to_numpy(), test["bureau_rated"].to_numpy()
-    return {"auc_no_bureau": float(ev.roc_auc_score(y[no_bureau], p[no_bureau])), "auc_rated": float(ev.roc_auc_score(y[rated], p[rated]))}
+    return {
+        "auc_no_bureau": float(ev.roc_auc_score(y[no_bureau], p[no_bureau])),
+        "auc_rated": float(ev.roc_auc_score(y[rated], p[rated])),
+    }
 
 
 def variant_table(train, val, test) -> list[dict]:
@@ -117,12 +145,14 @@ def variant_table(train, val, test) -> list[dict]:
         booster = fit(train, val, features)
         p = booster.predict(test[features])
         y = test["default"].to_numpy()
-        rows.append({
-            "name": name,
-            "auc_no_bureau": float(ev.roc_auc_score(y[no_bureau], p[no_bureau])),
-            "auc_rated": float(ev.roc_auc_score(y[rated], p[rated])),
-            "worst_region_ratio": worst_region_ratio(booster, features, val, test),
-        })
+        rows.append(
+            {
+                "name": name,
+                "auc_no_bureau": float(ev.roc_auc_score(y[no_bureau], p[no_bureau])),
+                "auc_rated": float(ev.roc_auc_score(y[rated], p[rated])),
+                "worst_region_ratio": worst_region_ratio(booster, features, val, test),
+            }
+        )
     return rows
 
 
@@ -158,7 +188,11 @@ def main():
     booster.save_model(str(ARTIFACTS / "model.txt"))
     scenarios = alt_scenarios(train, val, test)
     tiers = {
-        name: {"better": float(train[name].quantile(0.25)), "average": float(train["default"].mean()), "worse": float(train[name].quantile(0.75))}
+        name: {
+            "better": float(train[name].quantile(0.25)),
+            "average": float(train["default"].mean()),
+            "worse": float(train[name].quantile(0.75)),
+        }
         for name in CHANNEL
     }
     meta = {
@@ -181,7 +215,11 @@ def main():
     review = ~approved & ~high
 
     rated = test[test["bureau_rated"]]
-    y_rated, p_rated, bureau_score = rated["default"].to_numpy(), predict(rated), -rated["PERFORM_CNS.SCORE"].to_numpy(dtype=float)
+    y_rated, p_rated, bureau_score = (
+        rated["default"].to_numpy(),
+        predict(rated),
+        -rated["PERFORM_CNS.SCORE"].to_numpy(dtype=float),
+    )
     deciles = pd.Series(y_nb).groupby(pd.qcut(p_nb, 10, labels=False)).mean().tolist()
     ltv_nb = test_nb["ltv_pct"].to_numpy()
     grid = np.quantile(p_nb, np.linspace(0.02, 1.0, 50))
@@ -189,8 +227,14 @@ def main():
     for row in curve:
         row["ltv_rule_default"] = ev.rule_default_at(ltv_nb, y_nb, row["share"])
 
-    age_band = pd.cut(test_nb["age"], [0, 25, 35, 45, 120], labels=["Under 25", "25 to 34", "35 to 44", "45 and over"], right=False)
-    monthly = pd.DataFrame({"m": test["date"].dt.isocalendar().week.astype(int), "p": p_all, "y": y_all}).groupby("m").agg(predicted=("p", "mean"), actual=("y", "mean"), n=("y", "size"))
+    age_band = pd.cut(
+        test_nb["age"], [0, 25, 35, 45, 120], labels=["Under 25", "25 to 34", "35 to 44", "45 and over"], right=False
+    )
+    monthly = (
+        pd.DataFrame({"m": test["date"].dt.isocalendar().week.astype(int), "p": p_all, "y": y_all})
+        .groupby("m")
+        .agg(predicted=("p", "mean"), actual=("y", "mean"), n=("y", "size"))
+    )
 
     report = {
         "population": {
@@ -228,7 +272,10 @@ def main():
         "brier_base_rate_no_bureau": ev.brier(y_nb, np.full(len(y_nb), y_nb.mean())),
         "ece_no_bureau": ev.expected_calibration_error(y_nb, p_nb),
         "calibration": ev.calibration_table(y_nb, p_nb),
-        "weekly_drift": [{"week": int(r.Index), "predicted": float(r.predicted), "actual": float(r.actual), "n": int(r.n)} for r in monthly.itertuples()],
+        "weekly_drift": [
+            {"week": int(r.Index), "predicted": float(r.predicted), "actual": float(r.actual), "n": int(r.n)}
+            for r in monthly.itertuples()
+        ],
         "risk_deciles": [float(value) for value in deciles],
         "policy_curve": curve,
         "variants": variant_table(train, val, test),
@@ -258,8 +305,12 @@ def main():
     headline = report["headline"]
     print(f"Finished in {time.time() - started:.0f}s. Trees: {booster.best_iteration}")
     print(f"AUC no-bureau {report['auc']['no_bureau']}")
-    print(f"AUC rated: ZeroFile {report['auc']['rated_zerofile']['value']:.4f}, bureau score {report['auc']['rated_bureau_score']['value']:.4f}, gain {report['auc']['rated_gain']}")
-    print(f"Approved {headline['share']:.1%} of no-bureau ({headline['people']:,}, Rs {headline['crore']:.1f} crore), default {headline['default']:.2%}, benchmark {benchmark:.2%}, LTV rule {headline['ltv_rule_default']:.2%}")
+    print(
+        f"AUC rated: ZeroFile {report['auc']['rated_zerofile']['value']:.4f}, bureau score {report['auc']['rated_bureau_score']['value']:.4f}, gain {report['auc']['rated_gain']}"
+    )
+    print(
+        f"Approved {headline['share']:.1%} of no-bureau ({headline['people']:,}, Rs {headline['crore']:.1f} crore), default {headline['default']:.2%}, benchmark {benchmark:.2%}, LTV rule {headline['ltv_rule_default']:.2%}"
+    )
     print(pd.DataFrame(report["variants"]).round(4).to_string())
     print(pd.DataFrame(report["bands"]).round(4).to_string())
     print(pd.DataFrame(report["fairness"]["Age band"]).round(3).to_string())
@@ -268,9 +319,22 @@ def main():
     print("Regional floor", report["regional_floor"])
     print(pd.DataFrame(scenarios).round(4).to_string())
     print("Deciles", [round(v, 3) for v in deciles])
-    print("Calibration", {k: round(report[k], 4) for k in ("ks_no_bureau", "brier_no_bureau", "brier_base_rate_no_bureau", "ece_no_bureau")})
+    print(
+        "Calibration",
+        {
+            k: round(report[k], 4)
+            for k in ("ks_no_bureau", "brier_no_bureau", "brier_base_rate_no_bureau", "ece_no_bureau")
+        },
+    )
     print("Weekly", report["weekly_drift"])
-    print("Importance", report["importance"], "Classification", headline["classification"], "Latency ms", report["latency_ms_p50"])
+    print(
+        "Importance",
+        report["importance"],
+        "Classification",
+        headline["classification"],
+        "Latency ms",
+        report["latency_ms_p50"],
+    )
 
 
 if __name__ == "__main__":

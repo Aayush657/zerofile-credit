@@ -1,4 +1,5 @@
 """Runs the real Streamlit script headlessly, so a broken page fails the suite."""
+
 from pathlib import Path
 
 import pytest
@@ -22,7 +23,11 @@ def start() -> AppTest:
 
 
 def all_text(app: AppTest) -> str:
-    parts = [element.value for group in (app.markdown, app.success, app.warning, app.error, app.caption, app.info) for element in group]
+    parts = [
+        element.value
+        for group in (app.markdown, app.success, app.warning, app.error, app.caption, app.info)
+        for element in group
+    ]
     return "\n".join(parts)
 
 
@@ -38,7 +43,14 @@ def test_app_loads_with_every_tab():
     app = start()
     assert not app.exception
     assert app.title[0].value == "ZeroFile"
-    assert [tab.label for tab in app.tabs] == ["Score a worker", "Score a vehicle loan", "Lender impact", "Evidence", "Fairness audit", "Limits and data"]
+    assert [tab.label for tab in app.tabs] == [
+        "Score a worker",
+        "Score a vehicle loan",
+        "Lender impact",
+        "Evidence",
+        "Fairness audit",
+        "Limits and data",
+    ]
 
 
 @pytest.mark.parametrize("persona,band", PERSONAS)
@@ -46,7 +58,9 @@ def test_each_vehicle_example_reaches_its_band(persona, band):
     app = start()
     app.selectbox(key="persona").select(persona).run()
     assert not app.exception
-    assert any(line.startswith(f"**{band}.**") and "October back-test" in line for line in band_messages(app).split("\n"))
+    assert any(
+        line.startswith(f"**{band}.**") and "October back-test" in line for line in band_messages(app).split("\n")
+    )
 
 
 @pytest.mark.parametrize("worker,band", WORKERS)
@@ -54,7 +68,9 @@ def test_each_worker_example_reaches_its_band(worker, band):
     app = start()
     app.selectbox(key="worker_example").select(worker).run()
     assert not app.exception
-    assert any(line.startswith(f"**{band}.**") and "synthetic test set" in line for line in band_messages(app).split("\n"))
+    assert any(
+        line.startswith(f"**{band}.**") and "synthetic test set" in line for line in band_messages(app).split("\n")
+    )
 
 
 def test_close_call_shows_recourse_and_approved_case_does_not():
@@ -119,7 +135,10 @@ def test_slider_updates_the_lender_view():
 
 def test_lender_economics_respond_to_the_assumptions():
     app = start()
-    best = lambda: next(metric for metric in app.metric if metric.label == "Best approval level for these numbers").value
+
+    def best():
+        return next(metric for metric in app.metric if metric.label == "Best approval level for these numbers").value
+
     before = best()
     app.number_input(key="margin").set_value(30).run()
     assert not app.exception and best() != before

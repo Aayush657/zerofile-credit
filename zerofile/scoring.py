@@ -1,4 +1,5 @@
 """Runtime scoring for both models: risk, points breakdown, reasons, loan range and recourse. Needs only NumPy and LightGBM."""
+
 import json
 import math
 from dataclasses import dataclass, replace
@@ -71,6 +72,7 @@ class Applicant:
 @dataclass(frozen=True)
 class Worker:
     """Shares run from 0 to 1. None means no record, such as someone who pays no rent or has never used UPI."""
+
     bills_on_time: float
     recharges_per_month: float
     monthly_income: int
@@ -187,20 +189,27 @@ class Scorer(_Model):
         low_ltv, high_ltv = self.meta["ltv_range"]
         notes = []
         if not low_price <= a.vehicle_price <= high_price:
-            notes.append(f"The vehicle price is outside the ₹{low_price:,} to ₹{high_price:,} range the model learned from, so treat this result with caution.")
+            notes.append(
+                f"The vehicle price is outside the ₹{low_price:,} to ₹{high_price:,} range the model learned from, so treat this result with caution."
+            )
         if not low_ltv <= a.ltv_pct <= high_ltv:
-            notes.append(f"The loan is {a.ltv_pct:.0f}% of the vehicle price, outside the {low_ltv:.0f}% to {high_ltv:.0f}% the model learned from, so treat this result with caution.")
+            notes.append(
+                f"The loan is {a.ltv_pct:.0f}% of the vehicle price, outside the {low_ltv:.0f}% to {high_ltv:.0f}% the model learned from, so treat this result with caution."
+            )
         return notes
 
     def _reasons(self, a: Applicant, factors: dict) -> list:
-        return self._ordered(factors, {
-            "Down payment": f"Paying ₹{a.down_payment:,} down, {100 - a.ltv_pct:.0f}% of the vehicle price.",
-            "Vehicle price": f"The vehicle costs ₹{a.vehicle_price:,}.",
-            "Employment": f"Employment type: {a.employment.lower()}.",
-            "Vehicle brand": f"This vehicle brand's repayment record is {TIER_LABELS[a.brand]}.",
-            "Dealer record": f"This dealer's repayment record is {TIER_LABELS[a.dealer]}.",
-            "Branch record": f"This branch's repayment record is {TIER_LABELS[a.branch]}.",
-        })
+        return self._ordered(
+            factors,
+            {
+                "Down payment": f"Paying ₹{a.down_payment:,} down, {100 - a.ltv_pct:.0f}% of the vehicle price.",
+                "Vehicle price": f"The vehicle costs ₹{a.vehicle_price:,}.",
+                "Employment": f"Employment type: {a.employment.lower()}.",
+                "Vehicle brand": f"This vehicle brand's repayment record is {TIER_LABELS[a.brand]}.",
+                "Dealer record": f"This dealer's repayment record is {TIER_LABELS[a.dealer]}.",
+                "Branch record": f"This branch's repayment record is {TIER_LABELS[a.branch]}.",
+            },
+        )
 
     def _risks_for(self, applicants: list) -> np.ndarray:
         return self._risks([self._row(a) for a in applicants])
@@ -215,7 +224,10 @@ class Scorer(_Model):
         if not loans:
             return {"approve_up_to": None, "review_up_to": None}
         risks = self._risks_for([replace(a, down_payment=a.vehicle_price - loan) for loan in loans])
-        limit = lambda cutoff: next((loans[i] for i in range(len(loans) - 1, -1, -1) if risks[i] <= cutoff), None)
+
+        def limit(cutoff):
+            return next((loans[i] for i in range(len(loans) - 1, -1, -1) if risks[i] <= cutoff), None)
+
         return {"approve_up_to": limit(thresholds["approve"]), "review_up_to": limit(thresholds["high_risk"])}
 
     def recourse(self, a: Applicant) -> list:
@@ -233,7 +245,14 @@ class Scorer(_Model):
             hits = np.flatnonzero(risks <= cutoff)
             if hits.size:
                 down = downs[hits[0]]
-                options.append({"kind": "down_payment", "down_payment": down, "extra": down - a.down_payment, "risk": float(risks[hits[0]])})
+                options.append(
+                    {
+                        "kind": "down_payment",
+                        "down_payment": down,
+                        "extra": down - a.down_payment,
+                        "risk": float(risks[hits[0]]),
+                    }
+                )
         low_price = self.meta["price_range"][0]
         prices = list(range(a.vehicle_price - RECOURSE_STEP, max(low_price, a.down_payment + 1) - 1, -RECOURSE_STEP))
         if prices:
@@ -241,7 +260,14 @@ class Scorer(_Model):
             hits = np.flatnonzero(risks <= cutoff)
             if hits.size:
                 price = prices[hits[0]]
-                options.append({"kind": "cheaper_vehicle", "vehicle_price": price, "saving": a.vehicle_price - price, "risk": float(risks[hits[0]])})
+                options.append(
+                    {
+                        "kind": "cheaper_vehicle",
+                        "vehicle_price": price,
+                        "saving": a.vehicle_price - price,
+                        "risk": float(risks[hits[0]]),
+                    }
+                )
         return options
 
 
@@ -274,7 +300,10 @@ class WorkerScorer(_Model):
         for share in (w.bills_on_time, w.rent_on_time, w.income_swing):
             if share is not None and not 0 <= share <= 1:
                 raise ValueError("Shares must be between 0 and 1.")
-        if min(value for value in (w.recharges_per_month, w.upi_transactions, w.upi_months, 0) if value is not None) < 0:
+        if (
+            min(value for value in (w.recharges_per_month, w.upi_transactions, w.upi_months, 0) if value is not None)
+            < 0
+        ):
             raise ValueError("Counts cannot be negative.")
         if (w.upi_transactions is None) != (w.upi_months is None):
             raise ValueError("Give both UPI values, or neither for someone who does not use UPI.")
@@ -287,20 +316,31 @@ class WorkerScorer(_Model):
     def _warnings(self, w: Worker) -> list:
         notes = []
         if w.upi_transactions is None:
-            notes.append("This worker has no UPI history. The training data treats that as a strong risk signal, which may reflect the dataset's assumptions more than this person, so a person should review this result.")
+            notes.append(
+                "This worker has no UPI history. The training data treats that as a strong risk signal, which may reflect the dataset's assumptions more than this person, so a person should review this result."
+            )
         if w.emi_to_income > AFFORDABILITY_CAP:
-            notes.append(f"The instalment is {w.emi_to_income:.0%} of income, above the {AFFORDABILITY_CAP:.0%} affordability guardrail, so a person should check this loan whatever the score says.")
+            notes.append(
+                f"The instalment is {w.emi_to_income:.0%} of income, above the {AFFORDABILITY_CAP:.0%} affordability guardrail, so a person should check this loan whatever the score says."
+            )
         return notes
 
     def _reasons(self, w: Worker, factors: dict) -> list:
-        return self._ordered(factors, {
-            "Utility bills": f"{w.bills_on_time:.0%} of utility bills paid on time.",
-            "Rent": f"{w.rent_on_time:.0%} of rent paid on time." if w.rent_on_time is not None else "No rent record.",
-            "Mobile recharges": f"{w.recharges_per_month:g} mobile recharges a month.",
-            "UPI use": f"{w.upi_transactions:g} UPI payments a month, active for {w.upi_months:g} months." if w.upi_transactions is not None else "No UPI history.",
-            "Income steadiness": f"Income swings about {w.income_swing:.0%} from month to month.",
-            "Loan burden": f"Instalment of about ₹{w.emi:,.0f} a month, {w.emi_to_income:.0%} of income, before interest.",
-        })
+        return self._ordered(
+            factors,
+            {
+                "Utility bills": f"{w.bills_on_time:.0%} of utility bills paid on time.",
+                "Rent": f"{w.rent_on_time:.0%} of rent paid on time."
+                if w.rent_on_time is not None
+                else "No rent record.",
+                "Mobile recharges": f"{w.recharges_per_month:g} mobile recharges a month.",
+                "UPI use": f"{w.upi_transactions:g} UPI payments a month, active for {w.upi_months:g} months."
+                if w.upi_transactions is not None
+                else "No UPI history.",
+                "Income steadiness": f"Income swings about {w.income_swing:.0%} from month to month.",
+                "Loan burden": f"Instalment of about ₹{w.emi:,.0f} a month, {w.emi_to_income:.0%} of income, before interest.",
+            },
+        )
 
     def loan_range(self, w: Worker) -> dict:
         """The largest affordable loan over this repayment period that stays in each band. Risk only rises with the instalment."""
@@ -312,7 +352,10 @@ class WorkerScorer(_Model):
         if not loans:
             return {"approve_up_to": None, "review_up_to": None}
         risks = self._risks([self._row(replace(w, loan_amount=loan)) for loan in loans])
-        limit = lambda cutoff: next((loans[i] for i in range(len(loans) - 1, -1, -1) if risks[i] <= cutoff), None)
+
+        def limit(cutoff):
+            return next((loans[i] for i in range(len(loans) - 1, -1, -1) if risks[i] <= cutoff), None)
+
         return {"approve_up_to": limit(thresholds["approve"]), "review_up_to": limit(thresholds["high_risk"])}
 
     def recourse(self, w: Worker) -> list:
@@ -328,7 +371,11 @@ class WorkerScorer(_Model):
             hits = np.flatnonzero(risks <= cutoff)
             if hits.size:
                 options.append({"kind": "smaller_loan", "loan_amount": loans[hits[0]], "risk": float(risks[hits[0]])})
-        shares = [share / 100 for share in range(math.ceil(w.bills_on_time * 100 / 5) * 5, 101, 5) if share / 100 > w.bills_on_time]
+        shares = [
+            share / 100
+            for share in range(math.ceil(w.bills_on_time * 100 / 5) * 5, 101, 5)
+            if share / 100 > w.bills_on_time
+        ]
         if shares:
             risks = self._risks([self._row(replace(w, bills_on_time=share)) for share in shares])
             hits = np.flatnonzero(risks <= cutoff)

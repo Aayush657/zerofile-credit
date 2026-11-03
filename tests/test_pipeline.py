@@ -1,4 +1,5 @@
 """Data, feature and metric logic, tested on small hand-built frames so no raw data is needed."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,26 +12,30 @@ from zerofile.features import ALT_SIGNALS, FEATURES, ID_DOCUMENTS, encode_channe
 
 def raw_rows(**overrides) -> pd.DataFrame:
     base = {column: [0, 0] for column in REQUIRED_COLUMNS}
-    base.update({
-        "disbursed_amount": [50_000, 40_000],
-        "asset_cost": [100_000, 80_000],
-        "Date.of.Birth": ["01-01-68", "15-06-90"],
-        "DisbursalDate": ["01-08-18", "05-10-18"],
-        "Employment.Type": ["Salaried", None],
-        "PERFORM_CNS.SCORE.DESCRIPTION": ["No Bureau History Available", "C-Very Low Risk"],
-        "AVERAGE.ACCT.AGE": ["0yrs 0mon", "1yrs 11mon"],
-        "CREDIT.HISTORY.LENGTH": ["0yrs 0mon", "2yrs 1mon"],
-        "UniqueID": [1, 2],
-        "Current_pincode_ID": [1441, 1502],
-        "Employee_code_ID": [1998, 1998],
-    })
+    base.update(
+        {
+            "disbursed_amount": [50_000, 40_000],
+            "asset_cost": [100_000, 80_000],
+            "Date.of.Birth": ["01-01-68", "15-06-90"],
+            "DisbursalDate": ["01-08-18", "05-10-18"],
+            "Employment.Type": ["Salaried", None],
+            "PERFORM_CNS.SCORE.DESCRIPTION": ["No Bureau History Available", "C-Very Low Risk"],
+            "AVERAGE.ACCT.AGE": ["0yrs 0mon", "1yrs 11mon"],
+            "CREDIT.HISTORY.LENGTH": ["0yrs 0mon", "2yrs 1mon"],
+            "UniqueID": [1, 2],
+            "Current_pincode_ID": [1441, 1502],
+            "Employee_code_ID": [1998, 1998],
+        }
+    )
     base.update(overrides)
     return pd.DataFrame(base)
 
 
 def test_prepare_drops_personal_columns():
     frame = prepare(raw_rows())
-    assert not {"Date.of.Birth", "UniqueID", "Current_pincode_ID", "Employee_code_ID", "DisbursalDate"} & set(frame.columns)
+    assert not {"Date.of.Birth", "UniqueID", "Current_pincode_ID", "Employee_code_ID", "DisbursalDate"} & set(
+        frame.columns
+    )
 
 
 def test_prepare_fixes_two_digit_birth_years():
@@ -62,7 +67,9 @@ def test_split_is_by_time_with_no_overlap():
 
 
 def test_measured_features_exclude_bureau_identity_age_region_and_simulated_signals():
-    assert not set(FEATURES) & (set(BUREAU_NUMERIC) | set(ID_DOCUMENTS) | set(ALT_SIGNALS) | {"age", "region", "region_risk", "no_bureau"})
+    assert not set(FEATURES) & (
+        set(BUREAU_NUMERIC) | set(ID_DOCUMENTS) | set(ALT_SIGNALS) | {"age", "region", "region_risk", "no_bureau"}
+    )
 
 
 def test_only_ltv_is_monotonic():
@@ -82,7 +89,9 @@ def test_simulated_signals_scale_with_the_assumed_strength():
 
 def test_simulated_signals_are_reproducible():
     default = np.array([0, 1] * 50)
-    assert (simulate(default, 0.5, seed=3)["topup_regularity"] == simulate(default, 0.5, seed=3)["topup_regularity"]).all()
+    assert (
+        simulate(default, 0.5, seed=3)["topup_regularity"] == simulate(default, 0.5, seed=3)["topup_regularity"]
+    ).all()
 
 
 def test_better_habits_can_only_lower_risk():
@@ -91,13 +100,15 @@ def test_better_habits_can_only_lower_risk():
 
 def channel_frame(rows: int, seed: int = 0) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
-    return pd.DataFrame({
-        "default": rng.integers(0, 2, rows),
-        "brand": rng.integers(0, 3, rows),
-        "dealer": rng.integers(0, 3, rows),
-        "branch": rng.integers(0, 3, rows),
-        "region": rng.integers(0, 3, rows),
-    })
+    return pd.DataFrame(
+        {
+            "default": rng.integers(0, 2, rows),
+            "brand": rng.integers(0, 3, rows),
+            "dealer": rng.integers(0, 3, rows),
+            "branch": rng.integers(0, 3, rows),
+            "region": rng.integers(0, 3, rows),
+        }
+    )
 
 
 def test_encoding_gives_unseen_ids_the_overall_rate():
@@ -110,7 +121,7 @@ def test_encoding_gives_unseen_ids_the_overall_rate():
 def test_training_encoding_is_out_of_fold():
     train = channel_frame(1000)
     train["dealer"] = np.arange(1000) // 100  # Ten dealers, so each fold holds most of each dealer.
-    encoded, = encode_channels(train, smoothing=0)
+    (encoded,) = encode_channels(train, smoothing=0)
     rows = train.assign(risk=encoded["dealer_risk"])
     # A row that defaulted must not lift its own dealer's rate, so defaulters see a lower mean than repayers.
     assert rows.groupby("default")["risk"].mean()[1] < rows.groupby("default")["risk"].mean()[0]

@@ -1,21 +1,23 @@
 # Deploying ZeroFile
 
-Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and no dataset, because the trained model is in the repo.
+**Live at [zerofile.streamlit.app](https://zerofile.streamlit.app).** Every push to `main` redeploys it automatically.
+
+Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and no dataset, because the trained model is in the repo. To set it up again, or under a different account, follow these steps.
 
 ## Steps
 
 1. Make sure the code is on GitHub in a public repo, with `app.py` at the top level.
-2. Go to [share.streamlit.io](https://share.streamlit.io) and choose **Continue with GitHub**.
-3. Choose **Create app**, then **Deploy a public app from GitHub**.
+2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in. If you sign in by email, open **Settings → Linked accounts** and choose **Sign in with GitHub**, or you won't be able to create an app.
+3. Choose **Create your first app now** (or **Create app**).
 4. Fill in the form:
    - **Repository:** `Aayush657/zerofile-credit`
    - **Branch:** `main`
    - **Main file path:** `app.py`
    - **App URL:** something short, such as `zerofile`
-5. Open **Advanced settings** and set **Python version** to **3.11**. Leave secrets empty.
+5. Open **Advanced settings** and set **Python version** to **3.11**, because the default is newer and untested here. Leave secrets empty, then choose **Save**.
 6. Choose **Deploy**. The first build takes a few minutes.
 7. When the page loads, try all five tabs and change the example applicant.
-8. Copy the URL into `README.md` in place of `LIVE_DEMO_URL` and into your Unstop submission. Commit and push.
+8. Put the URL in `README.md` and your submission, then commit and push.
 9. Open the URL in a private window to confirm it works without your login.
 
 ## Before judging

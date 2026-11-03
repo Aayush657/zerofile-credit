@@ -9,8 +9,8 @@ Use the Submit tab in your dashboard, on Unstop.
 | Field | Value |
 |---|---|
 | GitHub repository link (required) | https://github.com/Aayush657/zerofile-credit |
-| Deployment link (strongly recommended) | LIVE_DEMO_URL |
-| Demo video Drive link (optional) | DEMO_VIDEO_URL |
+| Deployment link (strongly recommended) | https://zerofile.streamlit.app |
+| Demo video Drive link (optional) | Your Google Drive link, once uploaded |
 
 ## Project description
 
@@ -32,7 +32,7 @@ Paste this into the form:
 - [ ] No secrets or raw data: `git ls-files` lists no `.env`, `.csv` or `.zip` (a test also checks this)
 
 ### README
-- [ ] `LIVE_DEMO_URL` and `DEMO_VIDEO_URL` are replaced with real links, or the video mention is removed
+- [ ] Demo video link added beside the live demo link at the top, once uploaded
 - [ ] Team name matches what you registered with (the README says "ZeroFile (solo entry)")
 - [ ] The Mermaid diagram and screenshots display on GitHub
 

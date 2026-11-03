@@ -10,7 +10,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.66-ff4b4b)
 ![Licence](https://img.shields.io/badge/Licence-MIT-52514e)
 
-**Live demo:** LIVE_DEMO_URL · **Demo video:** DEMO_VIDEO_URL
+**Live demo: [zerofile.streamlit.app](https://zerofile.streamlit.app)** (free hosting, so if it has been idle, press the wake-up button and give it a minute)
 
 | | |
 |---|---|

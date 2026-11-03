@@ -79,6 +79,11 @@ def test_readme_numbers_match_the_report():
         assert number in README, number
 
 
+def test_readme_has_the_live_link_and_no_placeholders():
+    assert "https://zerofile.streamlit.app" in README
+    assert "LIVE_DEMO_URL" not in README and "DEMO_VIDEO_URL" not in README
+
+
 def test_the_official_brief_is_addressed_and_the_simulation_is_labelled():
     assert "## How this answers the official brief" in README
     assert "**This is a simulation, not a result.**" in README

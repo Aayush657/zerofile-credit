@@ -9,7 +9,7 @@ Sign in at https://neuralstorm.dev/login with the Google account you registered 
 | Field | Value |
 |---|---|
 | GitHub repository link (required) | https://github.com/Aayush657/zerofile-credit |
-| Deployment link (strongly recommended) | https://zerofile.streamlit.app |
+| Deployment link (strongly recommended) | https://zerofile-o7cn.onrender.com |
 | Demo video Drive link (optional) | Leave blank: the live app is the demo, and the README opens with a demo GIF |
 
 ## Project description
@@ -37,7 +37,7 @@ Paste this into the form:
 
 ### App
 - [ ] Live link opens in a private window and all six tabs work
-- [ ] App is awake shortly before the deadline, and opened at least once a day until results on 9 November
+- [ ] App opens shortly before the deadline. It sleeps when idle and wakes on the next visit, so no daily visits are needed
 - [ ] On a fresh machine: clone, install, `streamlit run app.py` (see the README)
 
 ### Submit

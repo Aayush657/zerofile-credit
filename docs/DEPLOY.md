@@ -1,42 +1,48 @@
 # Deploying ZeroFile
 
-**Live at [zerofile.streamlit.app](https://zerofile.streamlit.app).** Every push to `main` redeploys it automatically.
+**Live at [zerofile-o7cn.onrender.com](https://zerofile-o7cn.onrender.com).** Every push to `main` redeploys it automatically.
 
-Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and no dataset, because the trained model is in the repo. To set it up again, or under a different account, follow these steps.
+Host: **Render**, on its free plan. The app needs no secrets and no dataset, because the trained model is in the repo. To set it up again, or under a different account, follow these steps.
 
 ## Steps
 
 1. Make sure the code is on GitHub in a public repo, with `app.py` at the top level.
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in. If you sign in by email, open **Settings → Linked accounts** and choose **Sign in with GitHub**, or you won't be able to create an app.
-3. Choose **Create your first app now** (or **Create app**).
+2. Go to [dashboard.render.com](https://dashboard.render.com) and sign in with GitHub.
+3. Choose **New Web Service**, open the **Public Git Repository** tab, enter `https://github.com/Aayush657/zerofile-credit` and choose **Connect**.
 4. Fill in the form:
-   - **Repository:** `Aayush657/zerofile-credit`
+   - **Name:** `zerofile`
+   - **Language:** Python 3
    - **Branch:** `main`
-   - **Main file path:** `app.py`
-   - **App URL:** something short, such as `zerofile`
-5. Open **Advanced settings** and set **Python version** to **3.11**, because the default is newer and untested here. Leave secrets empty, then choose **Save**.
-6. Choose **Deploy**. The first build takes a few minutes.
-7. When the page loads, try all six tabs and change the example applicants.
-8. Put the URL in `README.md` and your submission, then commit and push.
-9. Open the URL in a private window to confirm it works without your login.
+   - **Region:** Singapore
+   - **Build command:** `pip install -r requirements.txt`
+   - **Start command:** `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
+   - **Compute:** **$0 / month**. The form preselects a paid plan, so change this.
+   - **Environment variable:** `PYTHON_VERSION` set to `3.11.18`
+5. Choose **Deploy web service**. The build takes a couple of minutes.
+6. When the page loads, try all six tabs and change the example applicants.
+7. Put the URL in `README.md`, `tests/test_submission.py` and your submission, then commit and push. Render adds a random suffix to the name, so the URL will differ.
+8. Open the URL in a private window to confirm it works without your login.
 
 ## Before judging
 
-Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. Open the link yourself shortly before the deadline, and at least once a day until results are announced on 9 November.
+Free instances sleep when no one has visited for a while and wake on the next visit. Render warns this can delay the first request by 50 seconds or more. There is no button to press, so no regular visits are needed. Open the link shortly before the deadline to confirm it works.
 
-## After pushing a code change
-
-Streamlit redeploys on every push, but it can keep old modules in memory, which shows an `ImportError` on the live page. If you see one, go to [share.streamlit.io](https://share.streamlit.io), open the app's **⋮** menu and choose **Reboot**. Then check the live page again.
+The free plan has 0.1 CPU, so changing an input on the vehicle-loan tab can take several seconds.
 
 ## If the build fails
 
-- **`libgomp` error:** `packages.txt` already installs it. Check that the file is at the top level of the repo.
-- **Python version error:** you can only change the version by deleting and redeploying the app, so set it to 3.11 when you create it.
-- **Package errors:** open **Manage app**, read the log, and compare with `requirements.txt`.
+- **Python version error:** check the `PYTHON_VERSION` environment variable.
+- **Package errors:** open **Logs** on the service page and compare with `requirements.txt`.
 
-## Backup host: Render
+## Why not Streamlit Community Cloud
 
-If Streamlit Cloud is down, create a free **Web Service** at [render.com](https://render.com) from the same repo, and set an environment variable `PYTHON_VERSION` to `3.11.9`:
+The app first ran there, and passed every check. Later, about one request in five to it began to hang and then fail, so the page never finished loading. Six other apps on the same Streamlit version had no failures, and the same code ran cleanly on a local machine and on Render. A reboot, a new subdomain and a full redeploy made no difference. The cause is unknown.
 
-- **Build command:** `pip install -r requirements.txt`
-- **Start command:** `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
+To try it again, go to [share.streamlit.io](https://share.streamlit.io) and choose **Create app**:
+
+- **Repository:** `Aayush657/zerofile-credit`
+- **Branch:** `main`
+- **Main file path:** `app.py`
+- **Advanced settings:** set **Python version** to **3.11**, because the default is newer and untested here.
+
+`packages.txt` is only read by Streamlit Community Cloud, which needs it for `libgomp`. Streamlit can also keep old modules in memory after a push, which shows an `ImportError`. If you see one, open the app's **⋮** menu and choose **Reboot**.

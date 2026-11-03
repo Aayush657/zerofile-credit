@@ -11,9 +11,9 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.66-ff4b4b)
 ![Licence](https://img.shields.io/badge/Licence-MIT-52514e)
 
-### [Try the live demo: zerofile.streamlit.app](https://zerofile.streamlit.app)
+### [Try the live demo: zerofile-o7cn.onrender.com](https://zerofile-o7cn.onrender.com)
 
-Free hosting, so if the app has been idle, press the wake-up button and give it a minute.
+Free hosting, so if the app has been idle, the first visit can take a minute or so while it wakes up.
 
 ![A tour of ZeroFile: scoring a rural worker and a gig worker, a real vehicle loan, the lender simulator, the fairness audit and the evidence](docs/demo.gif)
 
@@ -255,7 +255,7 @@ The deployed app reads only `artifacts/`, so no borrower row ever reaches the ho
 | Evaluation | scikit-learn 1.9.1 |
 | App and charts | Streamlit 1.66.1, Altair 6.3.0 |
 | Tests and CI | pytest 9.2.0, Streamlit AppTest, GitHub Actions |
-| Hosting | Streamlit Community Cloud (free) |
+| Hosting | Render (free) |
 
 ## Setup and running locally
 

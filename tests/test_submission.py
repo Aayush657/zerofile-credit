@@ -149,7 +149,7 @@ def test_readme_numbers_match_the_worker_report():
 
 
 def test_readme_has_the_live_link_and_no_placeholders():
-    assert "https://zerofile.streamlit.app" in README
+    assert "https://zerofile-o7cn.onrender.com" in README
     assert "LIVE_DEMO_URL" not in README and "DEMO_VIDEO_URL" not in README
 
 

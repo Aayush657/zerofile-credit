@@ -100,7 +100,7 @@ MODEL_CARD.md          intended use and limits
 ## Stack
 
 Python 3.11 · LightGBM 4.7.0 · pandas 3.1.0 · NumPy 2.4.6 · Streamlit 1.66.1 · Altair 6.3.0 for the app.
-scikit-learn 1.9.1 and pytest 9.2.0 for training and testing only. Host: Streamlit Community Cloud (free).
+scikit-learn 1.9.1 and pytest 9.2.0 for training and testing only. Host: Render (free).
 
 Streamlit alone is enough for one model and a form. LightGBM trains in about a minute on a laptop CPU, and its
 model file is small enough to commit, so cold starts stay short and there is no GPU or paid API to fail.

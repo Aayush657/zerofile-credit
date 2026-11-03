@@ -16,13 +16,13 @@ Host: **Streamlit Community Cloud**, which is free. The app needs no secrets and
    - **App URL:** something short, such as `zerofile`
 5. Open **Advanced settings** and set **Python version** to **3.11**, because the default is newer and untested here. Leave secrets empty, then choose **Save**.
 6. Choose **Deploy**. The first build takes a few minutes.
-7. When the page loads, try all five tabs and change the example applicant.
+7. When the page loads, try all six tabs and change the example applicants.
 8. Put the URL in `README.md` and your submission, then commit and push.
 9. Open the URL in a private window to confirm it works without your login.
 
 ## Before judging
 
-Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. Open the link yourself shortly before the deadline and again when judging is likely to start. Results are announced on 9 November.
+Free apps go to sleep after a period with no visitors, and the next visitor sees a "wake up" button. The `Keep demo awake` workflow visits the app every 6 hours until judging ends, and stops itself after 10 November. Still open the link yourself shortly before the deadline. Results are announced on 9 November.
 
 ## If the build fails
 

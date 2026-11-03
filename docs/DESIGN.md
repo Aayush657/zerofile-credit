@@ -34,12 +34,31 @@ The official PDF arrived after the first build. Comparing it with the build chan
 
 | The brief covers | Gap found | Decision |
 |---|---|---|
-| Alternative data such as utility bills and mobile usage | The real data has neither | Add them as a labelled simulation (`altdata.py`), which the PDF itself suggests, and report it separately from measured results |
-| Score and limit advice | No loan amount was suggested | Add a suggested loan range from the monotonic model |
-| Rural and gig workers | The data marks neither | Report self-employed applicants as the closest stand-in, and say so |
-| Fairness across gender, region and occupation | No gender in the data | Audit what exists, and state the gap in the app, README and model card |
+| Alternative data such as utility bills and mobile usage | The real data has neither, and no public dataset links them to repayment | Add a second model (`worker.py`) on an open synthetic dataset, which the PDF itself suggests, and label it everywhere |
+| Score and limit advice | No loan amount was suggested | Add a suggested loan range from the monotonic models |
+| Rural and gig workers | The real data marks neither | The worker model covers them directly, and self-employed applicants stand in on real data |
+| Fairness across gender, region and occupation | Neither dataset has gender | Audit what exists, and state the gap in the app, README and model card |
 
 The PDF also suggests Home Credit Default Risk as a base. It stays out because Kaggle's rules limit that data to its own competition. The organisers suggesting it does not change those terms.
+
+## Decisions on the worker model
+
+Measured on the Alternate Credit Dataset before the design was fixed:
+
+| Question | Finding | Decision |
+|---|---|---|
+| How is the label made? | `defaulted` is `default_probability` above a fixed cutoff | Keep that column out of training, and never present the AUC as real-world skill |
+| Which signals matter? | Bills, UPI, rent, loan burden and income swing carry it. Surveys, e-commerce and demographics add nothing | Use 7 inputs, which also keeps the form short |
+| Do wealth stand-ins help? | Dropping income level and transaction sizes raised AUC from 0.930 to 0.933 | Score habits, not wealth |
+| Do monotonic constraints cost anything? | AUC rose slightly with them | Keep them, so recourse is trustworthy |
+| How should bands work? | A group-level target put the approve cutoff at 43% personal risk, above the high-risk cutoff | Use fixed cutoffs on a person's own risk: 15% (the average borrower) and 50% |
+| Is the 100-point scale usable? | This model is sharper, so scores ran past 900 | Give it its own scale, with a test that it stays in 300 to 900 |
+| Are its loan suggestions sane? | It offered ₹5,00,000 to someone earning ₹24,000, because the labels barely punish large loans | Add a stated 40% of income affordability cap |
+| Who gets shut out? | Half of rural borrowers lack UPI, and no-UPI approval is far lower | Flag every no-UPI result for a person, and publish the gap |
+
+## Does tuning help?
+
+No. A scan of 32 LightGBM settings on the real data moved test AUC only between 0.629 and 0.631, and a plain logistic regression reaches 0.626. The limit is the data, so the time went into the product instead.
 
 ## Architecture
 
@@ -51,7 +70,11 @@ Kaggle CSV ──> zerofile/data.py ──> zerofile/features.py ──> zerofil
                                                           audit                 │
                                                                                 ▼
                  Streamlit app.py <──────── zerofile/scoring.py <──────────────────┘
-                 applicant · lender · evidence · fairness       score, reasons, recourse
+                 worker · vehicle loan · lender · evidence      score, reasons, loan
+                 · fairness · limits                            range, recourse
+
+Alternate Credit Dataset ──> zerofile/worker.py ──> artifacts/worker_* ──> zerofile/scoring.py
+ (synthetic, not committed)  inputs, LightGBM, audit
 ```
 
 The deployed app reads only `artifacts/`. No borrower row ever reaches the host.
@@ -59,16 +82,19 @@ The deployed app reads only `artifacts/`. No borrower row ever reaches the host.
 ## Folder structure
 
 ```text
-app.py                  Streamlit entry point
-zerofile/data.py           download, validation, time split
-zerofile/features.py       feature list and target encoding
-zerofile/evaluate.py       metrics, policy curves, fairness audit
-zerofile/train.py          end-to-end training run that writes artifacts/
-zerofile/scoring.py        runtime scoring, reasons and recourse
-artifacts/              trained model and aggregate report (committed)
-tests/                  pytest suite, including an app smoke test
-docs/                   design, deployment guide, demo script, submission text, screenshots
-MODEL_CARD.md           intended use and limits
+app.py                 Streamlit entry point
+zerofile/data.py       download, validation, time split
+zerofile/features.py   vehicle-loan features and target encoding
+zerofile/evaluate.py   metrics, policy curves, fairness audit
+zerofile/train.py      vehicle-loan training run
+zerofile/worker.py     worker model: data, training, audit
+zerofile/altdata.py    simulated signals for the data-value table
+zerofile/tune.py       settings scan
+zerofile/scoring.py    score, reasons, loan range and recourse for both models
+artifacts/             trained models and aggregate reports (committed)
+tests/                 pytest suite, including headless app tests
+docs/                  design, deployment guide, demo script, submission text, screenshots
+MODEL_CARD.md          intended use and limits
 ```
 
 ## Stack
@@ -104,8 +130,9 @@ model file is small enough to commit, so cold starts stay short and there is no 
 
 ## Stand-out features
 
-1. **Lender impact simulator:** a risk-appetite slider that shows people approved, rupees unlocked and the default rate on the real holdout.
+1. **Lender impact simulator:** a risk-appetite slider that shows people approved, rupees unlocked and the default rate on the real holdout, plus your own economics to find the most profitable approval level.
 2. **Explainable decision with recourse:** a points breakdown that adds up exactly, plus "put down ₹X more and you reach approval".
+3. **An honest fairness audit:** it shows where each model fails, measures a fix, and routes those cases to a person.
 
 ## Known limits
 

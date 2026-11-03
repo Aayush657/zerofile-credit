@@ -13,10 +13,11 @@ DISCLAIMER = "Research prototype for Neural Storm 2026. Not a lending decision o
 
 # Fictional examples, picked to show each band. No row comes from the dataset.
 PERSONAS = {
-    "Self-employed delivery rider, a close call": dict(vehicle_price=68_000, down_payment=16_000, employment="Self employed", brand="average", dealer="average", branch="average"),
-    "Salaried clinic assistant, larger down payment": dict(vehicle_price=72_000, down_payment=27_000, employment="Salaried", brand="average", dealer="better", branch="better"),
-    "Self-employed tailor, small down payment": dict(vehicle_price=82_000, down_payment=8_000, employment="Self employed", brand="worse", dealer="worse", branch="worse"),
+    "Self-employed delivery rider, a close call": dict(vehicle_price=68_000, down_payment=16_000, employment="Self employed", brand="average", dealer="average", branch="average", bills_on_time=90, topup_regularity=80, income_regularity=60),
+    "Salaried clinic assistant, larger down payment": dict(vehicle_price=72_000, down_payment=27_000, employment="Salaried", brand="average", dealer="better", branch="better", bills_on_time=95, topup_regularity=90, income_regularity=80),
+    "Self-employed tailor, small down payment": dict(vehicle_price=82_000, down_payment=8_000, employment="Self employed", brand="worse", dealer="worse", branch="worse", bills_on_time=50, topup_regularity=40, income_regularity=35),
 }
+SIGNAL_LABELS = {"bills_on_time": "Utility bills paid on time (%)", "topup_regularity": "Mobile top-ups on a regular schedule (%)", "income_regularity": "Months with steady income (%)"}
 WEEK_STARTS = {40: "1 Oct", 41: "8 Oct", 42: "15 Oct", 43: "22 Oct", 44: "29 Oct"}
 AGE_ORDER = ["Under 25", "25 to 34", "35 to 44", "45 and over"]
 
@@ -118,16 +119,27 @@ def applicant_tab(scorer: Scorer, report: dict) -> None:
         st.selectbox("Dealer's repayment record", TIER_LABELS, format_func=tier_label, key="dealer")
         st.selectbox("Branch's repayment record", TIER_LABELS, format_func=tier_label, key="branch")
         st.caption("A live system would look these records up from the dealer and branch. They are choices here because the dataset's IDs are anonymous.")
+        st.toggle("Add utility, mobile and income signals (simulated)", key="use_alt")
+        if st.session_state.use_alt:
+            for name, label in SIGNAL_LABELS.items():
+                # Streamlit forgets a slider's value while it is hidden.
+                if name not in st.session_state:
+                    st.session_state[name] = PERSONAS[st.session_state.persona][name]
+                st.slider(label, 0, 100, step=5, key=name)
+            st.caption("Simulated: no public dataset links these signals to repayment, so their effect is an assumption. A live system would use them only with the applicant's consent.")
 
-    applicant = Applicant(**{field: st.session_state[field] for field in ("vehicle_price", "down_payment", "employment", "brand", "dealer", "branch")})
+    fields = {field: st.session_state[field] for field in ("vehicle_price", "down_payment", "employment", "brand", "dealer", "branch")}
+    if st.session_state.use_alt:
+        fields |= {name: st.session_state[name] / 100 for name in SIGNAL_LABELS}
+    applicant = Applicant(**fields)
     with output:
         try:
             result = scorer.score(applicant)
         except ValueError as exc:
             st.error(str(exc), icon="🚫")
             return
-        thresholds = scorer.meta["thresholds"]
-        approve_at, high_at = scorer.points_for_risk(thresholds["approve"]), scorer.points_for_risk(thresholds["high_risk"])
+        spec = scorer.spec_for(applicant)
+        approve_at, high_at = scorer.points_for_risk(spec["thresholds"]["approve"], spec), scorer.points_for_risk(spec["thresholds"]["high_risk"], spec)
         band_default = {band["band"]: band["default"] for band in report["bands"]}[result.band]
         first, second, third = st.columns(3)
         first.metric("ZeroFile Score", f"{result.points:.0f}", help="300 to 900. Every 100 points halve the odds of default. This is not a CIBIL score.")
@@ -135,6 +147,8 @@ def applicant_tab(scorer: Scorer, report: dict) -> None:
         third.metric("Loan against vehicle price", f"{applicant.ltv_pct:.0f}%")
         show(score_scale(result.points, high_at, approve_at))
         message = f"In the October back-test, no-file applicants in this band defaulted {pct(band_default)} of the time."
+        if result.simulated:
+            message = "This result uses simulated signals, so it is a demonstration and not a measured back-test."
         if result.band == "Approve":
             st.success(f"**Approve.** {message}", icon="✅")
         elif result.band == "Human review":
@@ -143,6 +157,15 @@ def applicant_tab(scorer: Scorer, report: dict) -> None:
             st.error(f"**High risk.** A person should review this before any decline. {message}", icon="⛔")
         for note in result.warnings:
             st.info(note, icon="ℹ️")
+
+        st.subheader("Suggested loan on this vehicle")
+        loans = scorer.loan_range(applicant)
+        if loans["approve_up_to"]:
+            st.markdown(f"**Up to ₹{loans['approve_up_to']:,}** stays in the approve band.")
+        else:
+            st.markdown("No loan on this vehicle reaches the approve band.")
+        if loans["review_up_to"] and loans["review_up_to"] != loans["approve_up_to"]:
+            st.markdown(f"Up to ₹{loans['review_up_to']:,} goes to human review. Anything larger is high risk.")
 
         options = scorer.recourse(applicant)
         if result.band != "Approve":
@@ -159,7 +182,7 @@ def applicant_tab(scorer: Scorer, report: dict) -> None:
 
         st.subheader("Why this score")
         total = sum(result.factors.values())
-        st.write(f"The average applicant starts at {result.base_points:.0f} points. These factors add {total:+.0f}, which gives {result.points:.0f}.")
+        st.write(f"SHAP values show what each factor did. The average applicant starts at {result.base_points:.0f} points, and these factors add {total:+.0f}, which gives {result.points:.0f}.")
         show(breakdown_chart(result.reasons))
         for reason in result.reasons:
             st.markdown(f"- **{reason['factor']} ({reason['points']:+.0f}):** {reason['detail']}")
@@ -170,6 +193,11 @@ def lender_tab(report: dict) -> None:
     st.write(
         f"Every applicant here has no credit file, so a lender using only a bureau score approves none of them. "
         f"Move the slider to choose how many ZeroFile approves. All figures come from {headline['applicants']:,} October loans the model never trained on."
+    )
+    gig = next(row for row in report["fairness"]["Employment"] if row["group"] == "Self employed")
+    st.write(
+        f"**Closest group to gig workers in this data:** {gig['n']:,} self-employed applicants, of whom {pct(gig['approval'])} are approved and {pct(gig['default_if_approved'])} of those default. "
+        "The data does not mark rural applicants or specific gig jobs."
     )
     curve = pd.DataFrame(report["policy_curve"])
     share = st.slider("Approve the safest share of no-file applicants", 10, 100, 42, step=2, format="%d%%", key="share")
@@ -201,6 +229,30 @@ def lender_tab(report: dict) -> None:
             "LTV rule default rate": curve["ltv_rule_default"].map(pct),
         })
         st.dataframe(table, hide_index=True, width="stretch")
+
+    st.subheader("What would utility and mobile data be worth?")
+    st.warning(
+        "**This is a simulation, not a result.** The official brief points to signals like utility bills and mobile usage, but no public dataset links them to repayment. "
+        "So these signals are generated at an assumed strength, to show what a lender could gain if real ones were this strong. All other numbers on this page are measured.",
+        icon="⚠️",
+    )
+    scenarios = report["alt_scenarios"]
+    st.dataframe(
+        pd.DataFrame([
+            {"Scenario": "Today, without these signals (measured)", "Assumed AUC of each signal": "None", "Model AUC": f"{report['auc']['no_bureau']['value']:.3f}", "Approved": pct(headline["share"]), "People": f"{headline['people']:,}", "Credit (₹ crore)": f"{headline['crore']:.0f}", "Default rate": pct(headline["default"])},
+            *[
+                {"Scenario": f"{row['scenario']} (simulated)", "Assumed AUC of each signal": f"{row['signal_auc']:.2f}", "Model AUC": f"{row['auc_no_bureau']:.3f}", "Approved": pct(row["share"]), "People": f"{row['people']:,}", "Credit (₹ crore)": f"{row['crore']:.0f}", "Default rate": pct(row["default"])}
+                for row in scenarios
+            ],
+        ]),
+        hide_index=True,
+        width="stretch",
+    )
+    moderate = next(row for row in scenarios if row["scenario"] == "Moderate")
+    st.caption(
+        f"The Moderate signals separate the riskiest and safest fifths of applicants by {moderate['signals_only_quintile_ratio']:.1f} times. For comparison, [one study of real mobile phone records](https://arxiv.org/abs/1712.05840v3) reported 2.8 times on a different population. "
+        "Real signals would overlap with the inputs already used, so real gains may be smaller. The applicant tab's simulated toggle uses the Moderate model."
+    )
 
 
 def evidence_tab(report: dict) -> None:
@@ -268,7 +320,8 @@ def fairness_tab(report: dict) -> None:
     failing = [row for row in regions if not row["passes_four_fifths"]]
     st.write(
         "Age, region and ID documents are **not model inputs**. This audit checks the result anyway, because other inputs can stand in for them. "
-        "The test is the four-fifths rule: a group is flagged if its approval rate is under 80% of the best group's."
+        "The test is the four-fifths rule: a group is flagged if its approval rate is under 80% of the best group's. "
+        "**Gender is not in this dataset, so it could not be audited.**"
     )
     first, second, third = st.columns(3)
     for column, name in ((first, "Age band"), (second, "Employment")):
@@ -344,10 +397,11 @@ def limits_tab(report: dict) -> None:
     st.markdown(
         """
 - **It is a back-test.** Every row is a loan the lender funded. Nobody knows how rejected applicants would have behaved, so results may not carry over to them.
-- **Thin-file, not fully unbanked.** These are 2018 vehicle-loan borrowers with no bureau record. Most probably have bank accounts. Reaching the fully unbanked would take new data such as cash-flow records.
+- **Utility, mobile and income signals are simulated.** The measured model uses only the loan application. The simulated toggle and scenarios show what real signals could add, and prove nothing about what they would add.
+- **Thin-file, not fully unbanked.** These are 2018 vehicle-loan borrowers with no bureau record. Most probably have bank accounts. The data does not mark rural applicants or specific gig jobs, so self-employed applicants are the closest stand-in.
 - **Modest signal.** First-instalment default is noisy, and AUC stays near 0.63. The model separates groups well, but it cannot predict any single person.
 - **Risk estimates ran low.** October's defaults rose beyond what the model expected. The bands show what actually happened in October for that reason.
-- **Region fails the fairness audit.** See the Fairness tab. Dealer and branch records partly stand in for location.
+- **Region fails the fairness audit, and gender could not be tested.** See the Fairness tab. Dealer and branch records partly stand in for location.
 - **Not a fully blind test.** October was inspected while choosing features. Those choices only removed inputs, which should not inflate results, but a truly untouched test does not exist here.
 - **Not causal.** A bigger down payment lowers the model's estimate. It does not prove that person will repay.
         """

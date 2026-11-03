@@ -1,0 +1,20 @@
+{
+  "features": [
+    "bills_on_time",
+    "rent_on_time",
+    "recharges_per_month",
+    "upi_transactions",
+    "upi_months",
+    "income_swing",
+    "emi_to_income"
+  ],
+  "platt": {
+    "slope": 0.9324162539446785,
+    "intercept": 0.0744922963908306
+  },
+  "thresholds": {
+    "approve": 0.15,
+    "high_risk": 0.5
+  },
+  "emi_to_income_max": 1.4852036281974539
+}

@@ -28,6 +28,19 @@ Measured on the real data before the design was fixed:
 | Reported LTV or computed? | Same AUC (0.631) | Use `loan / vehicle price`, so the form and the data agree |
 | Monotonic LTV? | No AUC cost | Higher LTV can never lower risk, which makes recourse trustworthy |
 
+## Decisions from the official brief
+
+The official PDF arrived after the first build. Comparing it with the build changed four things:
+
+| The brief covers | Gap found | Decision |
+|---|---|---|
+| Alternative data such as utility bills and mobile usage | The real data has neither | Add them as a labelled simulation (`altdata.py`), which the PDF itself suggests, and report it separately from measured results |
+| Score and limit advice | No loan amount was suggested | Add a suggested loan range from the monotonic model |
+| Rural and gig workers | The data marks neither | Report self-employed applicants as the closest stand-in, and say so |
+| Fairness across gender, region and occupation | No gender in the data | Audit what exists, and state the gap in the app, README and model card |
+
+The PDF also suggests Home Credit Default Risk as a base. It stays out because Kaggle's rules limit that data to its own competition. The organisers suggesting it does not change those terms.
+
 ## Architecture
 
 ```text

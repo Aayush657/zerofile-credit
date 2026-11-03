@@ -16,7 +16,12 @@ Estimate the risk of default on the first instalment for vehicle-loan applicants
 | Target | Default on the first instalment |
 | Constraint | Risk can never fall as loan-to-value rises |
 | Inputs (6) | Loan-to-value, vehicle price, employment type, and the historic repayment records of the vehicle brand, dealer and branch |
-| Output | Risk estimate, a 300 to 900 score, a band, reasons, and recourse |
+| Output | Risk estimate, a 300 to 900 score, a band, SHAP reasons, a suggested loan range, and recourse |
+
+## Two models, kept apart
+
+- **Measured model:** the one described here. Every performance figure in this card comes from it.
+- **Simulated model:** the same inputs plus utility, mobile and income signals generated at an assumed strength, used only for the labelled scenarios and the optional toggle in the app. No public dataset links these signals to repayment, and the simulation draws them using the real outcome, so its figures are not evidence. It shows what a lender could gain if real signals were that strong.
 
 ## Inputs deliberately left out
 
@@ -61,12 +66,12 @@ Audited with the four-fifths rule on approval rate, plus default rate and approv
 
 A regional approval floor adds 2,143 people at a cost of 0.7 points of default (16.8%). It raises the lowest region from 8% to 49% of the highest. The gap narrows but does not close. The floor was computed on October after the fact and has not been tested on a later period.
 
-Gender and income are not in the dataset, so they could not be audited.
+The official brief names gender, region and occupation. Gender and income are not in the dataset, so they could not be audited. Employment type (salaried or self-employed) is the only occupation signal.
 
 ## Limits
 
 1. **Selection bias.** Every row is a loan the lender already funded. Results may not carry over to applicants it rejected, who are the people this project most wants to reach.
-2. **Thin-file is not unbanked.** These borrowers applied for vehicle finance through a dealer. Most probably have bank accounts.
+2. **Thin-file is not unbanked.** These borrowers applied for vehicle finance through a dealer. Most probably have bank accounts. The data does not mark rural applicants or specific gig jobs, so self-employed applicants are only a stand-in for the workers the official brief describes.
 3. **Age of the data.** One lender, three months, 2018. It predates much of India's digital-credit growth.
 4. **Modest signal.** AUC near 0.63 separates groups. It does not predict individuals.
 5. **Calibration drift.** Actual defaults reached 27.5% in the last week of October against 20.1% predicted. Ranking held up better than absolute risk, and the bands report what actually happened for that reason.

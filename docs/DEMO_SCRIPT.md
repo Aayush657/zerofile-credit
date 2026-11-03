@@ -1,4 +1,4 @@
-# Demo video script (about 2 minutes 40 seconds)
+# Demo video script (about 2 minutes 50 seconds)
 
 Record the screen with the live app open at 100% zoom. Keep the mouse slow. Upload to Google Drive and set sharing to **Anyone with the link can view**.
 
@@ -12,33 +12,35 @@ Record the screen with the live app open at 100% zoom. Keep the mouse slow. Uplo
 
 **Show:** point at the four numbers across the top.
 
-> "This is ZeroFile. It scores these applicants from the loan application alone, with no bureau data, no ID documents, no age and no location. On a month it never trained on, it approves over twenty-one thousand of them and unlocks a hundred and seven crore rupees of credit. They default at sixteen percent, which is better than the nineteen percent of borrowers the bureau rates as low risk."
+> "This is ZeroFile. It scores these applicants with no bureau data, no ID documents, no age and no location. On a month it never trained on, it approves over twenty-one thousand of them and unlocks a hundred and seven crore rupees of credit. They default at sixteen percent, which is better than the nineteen percent of borrowers the bureau rates as low risk."
 
-## Live demo: an applicant (0:45 to 1:25)
+## Live demo: an applicant (0:45 to 1:35)
 
 **Show:** the "Score an applicant" tab, with the delivery rider selected.
 
-> "Here's a self-employed delivery rider. The score is 583, so this goes to human review. But look at what happens next: it tells them exactly what would change the result."
+> "Here's a self-employed delivery rider, the kind of worker this problem is about. The score is 583, so this goes to human review. It suggests a loan of up to forty-six and a half thousand rupees, and tells them exactly what would change the result."
 
-**Do:** point at "Put ₹5,500 more down". Change the down payment to 21,500 and let the band turn green.
+**Do:** point at "Put ₹5,500 more down". Change the down payment to 21,500 and let the band turn green. Then set it back to 16,000.
 
-> "Put five and a half thousand rupees more down, and they reach approval. And here's why. Every factor adds or removes points, and they add up exactly to the score, so nothing is hidden."
+> "Put five and a half thousand rupees more down, and they reach approval. And here's why: every factor adds or removes SHAP points, and they add up exactly to the score, so nothing is hidden."
 
-**Do:** scroll to the breakdown chart.
+**Do:** scroll to the breakdown chart, then scroll up and switch on the simulated toggle.
 
-## Live demo: the lender (1:25 to 1:50)
+> "The brief also asks about utility bills and mobile usage. No public dataset links those to repayment, so this part is a clearly labelled simulation. With a good record, this rider reaches approval without paying more."
 
-**Show:** the "Lender impact" tab. Drag the slider from 42% to 60%, then back.
+## Live demo: the lender (1:35 to 2:05)
 
-> "A lender sees the consequences. This slider sets how many to approve, and it shows people, rupees and default rate on real loans. At every level, ZeroFile beats a simple loan-to-value rule."
+**Show:** the "Lender impact" tab. Drag the slider from 42% to 60%, then back. Scroll to the simulation table.
 
-## Impact and honesty (1:50 to 2:20)
+> "A lender sees the consequences. This slider sets how many to approve, and shows people, rupees and default rate on real loans. At every level short of approving everyone, ZeroFile beats a simple loan-to-value rule. And this table, again a simulation, sizes what utility and mobile data could be worth before a lender pays for it."
+
+## Impact and honesty (2:05 to 2:30)
 
 **Show:** the "Fairness audit" tab, on the warning box. Then the regional floor table.
 
 > "I also audited the result. Age and employment pass the four-fifths rule. Region fails, and the app says so. So I measured a fix: a regional floor brings in two thousand more people for less than one point of extra default. That's why ZeroFile sends borderline cases to a person, and never declines anyone on its own."
 
-## Tech (2:20 to 2:40)
+## Tech (2:30 to 2:50)
 
 **Show:** the "Evidence" tab, then the GitHub README.
 

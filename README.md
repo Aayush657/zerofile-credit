@@ -22,19 +22,51 @@
 
 ## Problem
 
+The HI-04 brief is about people with no formal credit history, especially rural and gig workers: can signals like utility bills and mobile usage show whether they would repay?
+
 A credit bureau score cannot rank someone it has never seen. In the public Indian vehicle-loan dataset used here, **116,950 of 233,154 borrowers (50.2%) have no bureau history at all.** A lender relying on the score alone has to turn all of them away or guess. Worldwide, about [1.3 billion adults still have no account](https://www.biia.com/financial-inclusion-at-record-high-but-1-3-billion-still-unbanked-world-bank-global-findex-2025-report) and so build no history in the first place.
 
 ## Solution
 
-ZeroFile scores applicants from the loan application alone. It uses no bureau data, no ID documents, no age and no location, then does three things a bare score cannot:
+ZeroFile scores applicants without any bureau data, ID documents, age or location. It starts from the loan application, then does four things a bare score cannot:
 
-1. **Explains every result.** A 300 to 900 score whose points add up exactly, factor by factor.
-2. **Shows what would change it.** For example: "Put ₹5,500 more down and this application reaches the approve band."
-3. **Shows a lender the consequences.** A slider that turns risk appetite into people approved, rupees unlocked and default rate on loans the model never trained on.
+1. **Explains every result.** A 300 to 900 score whose SHAP points add up exactly, factor by factor.
+2. **Suggests a loan range.** For example: "Up to ₹46,500 stays in the approve band."
+3. **Shows what would change it.** For example: "Put ₹5,500 more down and this application reaches the approve band."
+4. **Shows a lender the consequences.** A slider that turns risk appetite into people approved, rupees unlocked and default rate on loans the model never trained on.
+
+It also accepts utility, mobile and income signals, shown as a **clearly labelled simulation** because no public dataset links them to repayment.
+
+## How this answers the official brief
+
+The official guide lets teams narrow or reinterpret a problem. This table shows exactly where ZeroFile meets the brief and where it reinterprets it.
+
+| The brief covers | What ZeroFile does | Evidence |
+|---|---|---|
+| Creditworthiness without formal credit history | Scores 49,748 no-file applicants against real repayment outcomes | **Measured** |
+| Alternative data such as utility bills and mobile usage | Real data: non-bureau application signals. Utility, mobile and income signals: built in and sized by simulation | **Simulated, and labelled** |
+| Rural and gig workers | Self-employed applicants are the closest group: 28,196 applicants, 40.2% approved, 16.2% default rate among them. The data does not mark rural applicants or gig jobs | **Measured on a stand-in** |
+| Fairness across gender, region and occupation | Region, occupation and age are audited. Gender is not in this dataset | **Partly measured** |
+| Explainable decisions | SHAP points breakdown and plain-language reasons on every result | **Built** |
+| Score and limit advice | 300 to 900 score and a suggested loan range | **Built** |
+| Privacy and consent | Personal fields dropped at load, nothing you type is stored, and consent is noted as a condition for alternative data | **Built** |
+
+### What would utility and mobile data be worth?
+
+**This is a simulation, not a result.** No public dataset links these signals to repayment, so they are generated at an assumed strength. It answers one question: how much could a lender gain if real signals were this strong?
+
+| Scenario | Assumed AUC of each signal | Model AUC | Approved | People | Credit | Default rate |
+|---|---|---|---|---|---|---|
+| Today, without these signals (measured) | None | 0.631 | 42.8% | 21,288 | ₹107 crore | 16.1% |
+| Weak (simulated) | 0.55 | 0.642 | 48.2% | 23,957 | ₹124 crore | 16.3% |
+| Moderate (simulated) | 0.60 | 0.672 | 59.2% | 29,433 | ₹157 crore | 16.5% |
+| Strong (simulated) | 0.65 | 0.716 | 70.1% | 34,871 | ₹189 crore | 16.4% |
+
+The Moderate signals separate the riskiest and safest fifths of applicants by 2.5 times. For comparison, [a study of real mobile phone records](https://arxiv.org/abs/1712.05840v3) reported 2.8 times on a different population, so that scenario is not far-fetched. Real signals would overlap with the inputs already used, so real gains may be smaller. No figure from this table appears in the results below.
 
 ## Results
 
-Tested on October 2018, a month the model never trained on. Cutoffs were **fixed on September data before October was scored**.
+These are measured, on real repayment outcomes. Tested on October 2018, a month the model never trained on. Cutoffs were **fixed on September data before October was scored**.
 
 | What was measured (no-file applicants) | Result |
 |---|---|
@@ -77,7 +109,7 @@ Tested on October 2018, a month the model never trained on. Cutoffs were **fixed
 
 ## Fairness audit
 
-Age and region are not model inputs, but other inputs can stand in for them, so the outcome is audited with the four-fifths rule.
+Age and region are not model inputs, but other inputs can stand in for them, so the outcome is audited with the four-fifths rule. Gender is not in this dataset, so it could not be audited.
 
 | Group | Result |
 |---|---|
@@ -113,10 +145,13 @@ flowchart LR
     D --> E[zerofile/evaluate.py<br/>October back-test,<br/>policy curves, fairness]
     D --> F[(artifacts/<br/>model.txt, meta.json)]
     E --> G[(artifacts/<br/>report.json)]
-    F --> H[zerofile/scoring.py<br/>score, reasons, recourse]
+    F --> H[zerofile/scoring.py<br/>score, SHAP reasons,<br/>loan range, recourse]
     H --> I[app.py<br/>Streamlit]
     G --> I
+    J[zerofile/altdata.py<br/>simulated utility, mobile,<br/>income signals] -.-> D
 ```
+
+The dotted line is simulation only. It feeds the labelled scenarios and the optional toggle, never the measured results.
 
 The deployed app reads only `artifacts/`, so no borrower row ever reaches the host.
 
@@ -127,7 +162,9 @@ The deployed app reads only `artifacts/`, so no borrower row ever reaches the ho
 - **Features (6):** loan-to-value, vehicle price, employment type, and the historic repayment records of the vehicle brand, dealer and branch. The records are smoothed, out-of-fold for training rows, and later months only see what training saw.
 - **Model:** LightGBM with 152 trees. A monotonic constraint means a bigger loan against the same vehicle can never lower risk, which keeps recourse trustworthy. Platt scaling calibrates the output.
 - **Score:** a linear map of the model's log-odds, where 100 points halve the odds of default. TreeSHAP values therefore add up exactly to the score.
+- **Loan range:** the largest loan on the chosen vehicle that stays in each band. The monotonic constraint makes that limit well defined.
 - **Recourse:** the smallest change to the down payment or vehicle that reaches the approve band. Identity, dealer and age are never suggested.
+- **Simulated signals:** one shared payment habit plus separate noise per signal, with the habit shifted for people who defaulted by an assumed amount. The model can only treat better habits as lower risk.
 
 ## Tech stack
 
@@ -188,13 +225,15 @@ pytest
 ## Responsible use
 
 - **A decision aid, not a decision.** It should send borderline cases to a person and never decline someone on its own.
-- **Privacy.** The app stores nothing you type, and all example applicants are fictional. The repo holds a model and aggregate results, with no borrower rows.
+- **Privacy and consent.** The app stores nothing you type, and all example applicants are fictional. The repo holds models and aggregate results, with no borrower rows. A live system should use utility and mobile records only with the applicant's consent.
 - **Not financial advice.** This is a research prototype.
 
 The full list of limits is in [MODEL_CARD.md](MODEL_CARD.md). The main ones:
 
+- **Utility, mobile and income signals are simulated.** They show what real signals could add, and prove nothing about what they would add.
 - **It is a back-test.** Every row is a loan the lender funded, so results may not carry over to applicants it rejected.
-- **Thin-file, not fully unbanked.** These are 2018 vehicle-loan borrowers with no bureau record. Most probably have bank accounts.
+- **Thin-file, not fully unbanked.** These are 2018 vehicle-loan borrowers with no bureau record. Most probably have bank accounts, and rural applicants and gig jobs are not marked.
+- **Gender could not be audited.** The dataset does not include it.
 - **Risk estimates ran low.** Defaults jumped in late October beyond what the model expected, so a live system would need regular recalibration.
 - **Not a fully blind test.** October was inspected while choosing features. Those choices only removed inputs, but a truly untouched test does not exist here.
 
@@ -202,13 +241,15 @@ The full list of limits is in [MODEL_CARD.md](MODEL_CARD.md). The main ones:
 
 Data: [L&T Vehicle Loan Default Prediction](https://www.kaggle.com/datasets/mamtadhaker/lt-vehicle-loan-default-prediction) on Kaggle, uploaded by Mamta Dhaker. Its licence is listed as "Other" with no terms stated, so raw data is not redistributed here and `python -m zerofile.data` fetches it from the source. Code is under the [MIT licence](LICENSE).
 
+The official guide also suggests Home Credit Default Risk as a base. I did not use it because [Kaggle's rules for that competition](https://www.kaggle.com/competitions/home-credit-default-risk/rules) limit its data to the competition itself.
+
 ## AI tools used
 
 - **[Claude](https://www.anthropic.com/claude) by Anthropic (Claude Opus 5.5, through Claude Code):** researched the problem statements and datasets, ran the data experiments, and wrote the design, code, tests and documentation from my brief. I chose the problem from its shortlist and set the requirements.
 
 ## Future scope
 
-- **Real alternative data:** cash-flow records through India's Account Aggregator framework, which could reach people without a vehicle-loan application.
+- **Real alternative data:** a consented pilot with utility and telecom partners, or cash-flow records through India's Account Aggregator framework, to replace the simulation with measurement and reach rural and gig workers directly.
 - **Reject inference:** a controlled pilot on applicants who would otherwise be turned away, to test the back-test's biggest assumption.
 - **Live monitoring:** drift alerts and scheduled recalibration, given the late-October jump.
 - **Lender API:** a FastAPI scoring endpoint over the same `zerofile/scoring.py`.
@@ -220,10 +261,11 @@ Data: [L&T Vehicle Loan Default Prediction](https://www.kaggle.com/datasets/mamt
 app.py                 Streamlit app
 zerofile/data.py       download, validation, time split
 zerofile/features.py   features and target encoding
+zerofile/altdata.py    simulated utility, mobile and income signals
 zerofile/train.py      end-to-end training run
 zerofile/evaluate.py   metrics, policy curves, fairness audit
-zerofile/scoring.py    score, reasons, recourse
-artifacts/             trained model and aggregate report
+zerofile/scoring.py    score, reasons, loan range, recourse
+artifacts/             trained models and aggregate report
 tests/                 pytest suite, including headless app tests
 docs/                  design, deployment guide, demo script, submission notes
 MODEL_CARD.md          intended use and limits

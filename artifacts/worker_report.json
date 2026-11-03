@@ -41,7 +41,7 @@
     "share": 0.7165,
     "people": 1433,
     "default": 0.022330774598743892,
-    "crore": 0.0001433,
+    "crore": 34.46542,
     "not_approved_default": 0.47442680776014107,
     "classification": {
       "accuracy": 0.835,
@@ -56,21 +56,21 @@
       "share": 0.7165,
       "people": 1433,
       "default": 0.022330774598743892,
-      "crore": 0.0001433
+      "crore": 34.46542
     },
     {
       "band": "Human review",
       "share": 0.169,
       "people": 338,
       "default": 0.28994082840236685,
-      "crore": 3.38e-05
+      "crore": 8.55054
     },
     {
       "band": "High risk",
       "share": 0.1145,
       "people": 229,
       "default": 0.7467248908296943,
-      "crore": 2.29e-05
+      "crore": 6.47052
     }
   ],
   "variants": [
@@ -599,5 +599,5 @@
     "trees": 245,
     "features": 7
   },
-  "latency_ms_p50": 0.47420000191777945
+  "latency_ms_p50": 0.5186499329283834
 }
